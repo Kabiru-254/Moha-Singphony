@@ -81,11 +81,17 @@ export class RealtimeSyncService {
 
     es.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        // When entire tree is returned, iterate; when single child event, handle appropriately.
-        if (!data) return;
+        const payload = JSON.parse(event.data);
+        // Firebase RTDB streaming payload shape: { path: string, data: any }
+        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
+        if (data == null) return; // ignore deletes or empty
+
         if (typeof data === 'object' && !Array.isArray(data)) {
+          // Initial or multi-child payload: iterate child nodes (messages keyed by id)
           Object.values(data).forEach((val: any) => this.tryIngestMessage(val));
+        } else {
+          // Single node payload
+          this.tryIngestMessage(data);
         }
       } catch (_) {}
     };
