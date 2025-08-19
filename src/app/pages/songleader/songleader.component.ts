@@ -36,12 +36,10 @@ export class SongleaderComponent implements OnInit, OnDestroy {
   showSongSetupModal: boolean = false;
   newSong: {
     title: string;
-    artist: string;
     key: string;
     structure: string;
   } = {
     title: '',
-    artist: '',
     key: 'C',
     structure: ''
   };
@@ -151,8 +149,7 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     }
 
     this.filteredSongs = this.songs.filter(song =>
-      song.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-      song.artist.toLowerCase().includes(this.searchQuery.toLowerCase())
+      song.title.toLowerCase().includes(this.searchQuery.toLowerCase())
     );
   }
 
@@ -300,7 +297,6 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     this.showSongSetupModal = true;
     this.newSong = {
       title: '',
-      artist: '',
       key: 'C',
       structure: ''
     };
@@ -319,7 +315,6 @@ export class SongleaderComponent implements OnInit, OnDestroy {
 
       this.songService.addSong({
         title: this.newSong.title,
-        artist: this.newSong.artist || '',
         keys: [this.newSong.key],
         tempo: 100, // Default medium tempo
         structure: structureArray.length > 0 ? structureArray : ['Verse', 'Chorus']

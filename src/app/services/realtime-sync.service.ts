@@ -99,22 +99,22 @@ export class RealtimeSyncService {
       // On error, EventSource will retry; nothing to do
     };
 
-    // Poll currentSong as a fallback (SSE for single object can be flaky). Keep it simple
-    const pollCurrent = async () => {
+    // Current song SSE for realtime updates
+    const esSong = new EventSource(currentSongUrl);
+    esSong.onmessage = (event) => {
       try {
-        const resp = await fetch(currentSongUrl, { cache: 'no-store' });
-        if (resp.ok) {
-          const state = await resp.json();
-          if (state && state._originId !== this.clientId) {
-            const copy: any = { ...state };
-            delete copy._originId;
-            this.messageService.setCurrentSongStateFromRemote(copy as CurrentSongState);
-          }
-        }
+        const payload = JSON.parse(event.data);
+        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
+        if (!data) return;
+        if (data._originId && data._originId === this.clientId) return;
+        const copy: any = { ...data };
+        delete copy._originId;
+        this.messageService.setCurrentSongStateFromRemote(copy as CurrentSongState);
       } catch {}
     };
-    // Polling interval small enough for demo, large enough to not spam
-    setInterval(pollCurrent, 1500);
+    esSong.onerror = () => {
+      // EventSource auto-reconnects; no-op
+    };
   }
 
   private tryIngestMessage(val: any) {

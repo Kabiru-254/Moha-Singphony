@@ -27,15 +27,14 @@ export class SoundTeamComponent implements OnInit, OnDestroy {
   messages: Message[] = [];
   currentSongState: CurrentSongState | null = null;
 
-  // Quick replies
+  // Quick replies (focused on acknowledging and requesting confirmation)
   quickReplies: string[] = [
-    'Sound OK',
-    'Vocals Low',
-    'Vocals High',
-    'Instruments Low',
-    'Instruments High',
-    'Can\'t Hear Keys',
-    'Can\'t Hear Vocals'
+    'On it — checking',
+    'Adjusted vocals — please confirm',
+    'Adjusted instruments — please confirm',
+    'Reduced feedback — please confirm',
+    'Raised lead mic — please confirm',
+    'Is it OK now?'
   ];
 
   // Custom message
@@ -93,8 +92,8 @@ export class SoundTeamComponent implements OnInit, OnDestroy {
 
   sendQuickReply(reply: string) {
     this.messageService.sendMessage({
-      type: MessageType.SOUND_REQUEST,
-      content: { request: reply },
+      type: MessageType.ACKNOWLEDGMENT,
+      content: { text: reply },
       sender: RecipientRole.SOUND_TEAM,
       recipients: [RecipientRole.SONG_LEADER, RecipientRole.MUSICIAN]
     });

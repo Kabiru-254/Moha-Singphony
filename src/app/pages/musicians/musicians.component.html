@@ -1,4 +1,5 @@
-<div class="p-6 dark:bg-gray-900 dark:text-white h-full flex flex-col space-y-6">
+<div class="min-h-screen p-4 md:p-6 dark:bg-gray-900 dark:text-white w-full">
+  <div class="container mx-auto max-w-6xl flex flex-col space-y-8">
   <!-- Notification Component -->
   <app-notification></app-notification>
 
@@ -52,8 +53,7 @@
       </div>
 
       <div class="flex flex-wrap gap-4 text-lg text-gray-600 dark:text-gray-400 mb-6">
-        <div>Artist: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState?.song?.artist || 'N/A' }}</span></div>
-        <div>Tempo: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})</span></div>
+        <div>Tempo: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }}</span></div>
       </div>
 
       <!-- Current Key Banner -->
@@ -99,10 +99,9 @@
         <div *ngIf="nextSong; else noNextSong" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
           <p class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ nextSong.title }}</p>
           <div class="flex flex-wrap gap-2 mt-2">
-            <p class="text-gray-600 dark:text-gray-400">{{ nextSong.artist }}</p>
-            <div class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-sm">
-              {{ nextSong.keys[0] }}
-            </div>
+          <div class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-sm">
+            {{ nextSong.keys[0] }}
+          </div>
           </div>
         </div>
         <ng-template #noNextSong>
@@ -169,4 +168,5 @@
     <span class="material-icons mr-2">wifi_off</span>
     Offline Mode - Showing Last Known State
   </div>
+</div>
 </div>

@@ -40,7 +40,6 @@ export interface Message {
 export interface Song {
   id: number;
   title: string;
-  artist: string;
   keys: string[];
   tempo: number;
   structure: string[];

@@ -5,11 +5,12 @@
 
 :root {
   --surface: #ffffff;
-  --surface-muted: #f7f7f9;
-  --text: #111827;
-  --text-muted: #6b7280;
-  --primary: #111827; /* near-black for minimal look */
-  --ring: #4f46e5; /* indigo accent for focus */
+  /* Slightly colorful, soft light background */
+  --surface-muted: #f3f8ff; /* very light blue tint */
+  --text: #0f172a; /* slightly richer than #111827 */
+  --text-muted: #546074; /* cooler muted tone */
+  --primary: #0f172a;
+  --ring: #3b82f6; /* blue-500 for a more vibrant focus */
   --dark-surface: #0f172a; /* slate-900 */
   --dark-surface-muted: #111827; /* gray-900 */
   --dark-text: #e5e7eb; /* gray-200 */
@@ -53,13 +54,13 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
 
 /* Reusable components */
 @layer components {
-  .card { @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100/60 dark:border-gray-700/50; }
-  .card-muted { @apply bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-700/50; }
+  .card { @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-indigo-100/60 dark:border-gray-700/50; }
+  .card-muted { @apply bg-indigo-50 dark:bg-gray-900 rounded-xl border border-indigo-100/60 dark:border-gray-700/50; }
   .btn { @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900; }
-  .btn-ghost { @apply btn bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 focus:ring-indigo-500; }
-  .btn-primary { @apply btn bg-gray-900 text-white hover:bg-black focus:ring-indigo-500; }
-  .input { @apply w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent; }
-  .chip { @apply inline-flex items-center px-2 py-1 rounded-lg text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200; }
+  .btn-ghost { @apply btn bg-blue-50 hover:bg-blue-100 text-blue-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 focus:ring-blue-500; }
+  .btn-primary { @apply btn bg-gray-900 text-white hover:bg-black focus:ring-blue-500; }
+  .input { @apply w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent; }
+  .chip { @apply inline-flex items-center px-2 py-1 rounded-lg text-xs bg-blue-50 text-blue-700 dark:bg-gray-700 dark:text-gray-200; }
 }
 
 /* Custom Switch */
@@ -87,3 +88,25 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
 .switch input:checked + .slider { background: #111827; }
 .switch input:checked + .slider:before { transform: translateX(20px); }
 
+
+
+/* Corrected root variables for light mode vibrancy */
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f3f8ff; /* very light blue tint */
+  --text: #0f172a;
+  --text-muted: #546074;
+  --primary: #0f172a;
+  --ring: #3b82f6;
+}
+
+
+/* Variable overrides applied to html to avoid ::root issue */
+html {
+  --surface: #ffffff;
+  --surface-muted: #f3f8ff;
+  --text: #0f172a;
+  --text-muted: #546074;
+  --primary: #0f172a;
+  --ring: #3b82f6;
+}

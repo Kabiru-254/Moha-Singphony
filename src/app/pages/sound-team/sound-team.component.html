@@ -1,4 +1,5 @@
-<div class="p-6 dark:bg-gray-900 dark:text-white h-full flex flex-col space-y-6">
+<div class="min-h-screen p-4 md:p-6 dark:bg-gray-900 dark:text-white w-full">
+  <div class="container mx-auto max-w-6xl flex flex-col space-y-8">
   <!-- Notification Component -->
   <app-notification></app-notification>
 
@@ -14,24 +15,6 @@
     </div>
   </header>
 
-  <!-- Current Song Info -->
-  <section class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
-        {{ currentSongState?.song?.title || 'No Song Selected' }}
-      </h2>
-      <div class="flex items-center">
-        <span class="material-icons text-2xl mr-2 text-gray-600 dark:text-gray-400">
-          {{ currentSongState && currentSongState.isPlaying ? 'music_note' : 'pause' }}
-        </span>
-      </div>
-    </div>
-    <div class="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-      <div>Artist: <span class="font-medium">{{ currentSongState?.song?.artist || 'N/A' }}</span></div>
-      <div>Key: <span class="font-medium">{{ currentSongState?.currentKey || 'C' }}</span></div>
-      <div>Tempo: <span class="font-medium">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})</span></div>
-    </div>
-  </section>
 
   <!-- Sound Ready Button -->
   <section class="mb-4">
@@ -181,4 +164,5 @@
       </ng-template>
     </div>
   </section>
+</div>
 </div>

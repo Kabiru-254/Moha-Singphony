@@ -18,7 +18,6 @@ export class SongService {
     {
       id: 1,
       title: 'Amazing Grace',
-      artist: 'John Newton',
       keys: ['C', 'D', 'E', 'F', 'G', 'A'],
       tempo: 100,
       structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Bridge', 'Chorus'],
@@ -27,7 +26,6 @@ export class SongService {
     {
       id: 2,
       title: 'How Great Thou Art',
-      artist: 'Stuart K. Hine',
       keys: ['C', 'D', 'E', 'G'],
       tempo: 100,
       structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
@@ -36,7 +34,6 @@ export class SongService {
     {
       id: 3,
       title: 'Great Is Thy Faithfulness',
-      artist: 'Thomas Chisholm',
       keys: ['D', 'E', 'F', 'G'],
       tempo: 80,
       structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
@@ -45,7 +42,6 @@ export class SongService {
     {
       id: 4,
       title: 'Blessed Assurance',
-      artist: 'Fanny Crosby',
       keys: ['C', 'D', 'E', 'F', 'G'],
       tempo: 100,
       structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
@@ -54,7 +50,6 @@ export class SongService {
     {
       id: 5,
       title: 'Holy Spirit',
-      artist: 'Jesus Culture',
       keys: ['D', 'E', 'F'],
       tempo: 80,
       structure: ['Intro', 'Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Bridge', 'Chorus'],
@@ -136,8 +131,7 @@ export class SongService {
     }
 
     const results = this.songs.filter(song =>
-      song.title.toLowerCase().includes(query.toLowerCase()) ||
-      song.artist.toLowerCase().includes(query.toLowerCase())
+      song.title.toLowerCase().includes(query.toLowerCase())
     );
     this.searchResultsSubject.next(results);
   }
