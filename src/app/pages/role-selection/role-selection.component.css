@@ -1,19 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;700&family=Nunito:wght@400;600&display=swap');
 
-* {
+/* Scope font to the section to avoid overriding Material Icons ligature font */
+#roleSelectionSection {
   font-family: 'Nunito', sans-serif;
 }
 
-#roleSelectionSection {
-  background-color: #f4f4f4; /* Light gray background */
-}
-
 .selection-card {
-  width: 90%;
-  max-width: 300px;
+  width: 100%;
+  max-width: none;
   height: auto;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .font-jost {
   font-family: 'Jost', sans-serif;
+}
+
+.selection-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.12);
 }

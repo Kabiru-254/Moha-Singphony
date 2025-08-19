@@ -1,0 +1,183 @@
+<div class="p-6 dark:bg-gray-900 dark:text-white h-full flex flex-col space-y-6">
+  <!-- Notification Component -->
+  <app-notification></app-notification>
+
+  <!-- Header -->
+  <header class="flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎹 Pianist View</h1>
+    <div class="flex items-center">
+      <span class="mr-2 text-sm text-gray-600 dark:text-gray-400">Theme</span>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" (change)="toggleTheme()" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Current Song Info -->
+  <section class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+        {{ currentSongState?.song?.title || 'No Song Selected' }}
+      </h2>
+      <div class="flex items-center">
+        <span class="material-icons text-2xl mr-2 text-gray-600 dark:text-gray-400">
+          {{ currentSongState && currentSongState.isPlaying ? 'music_note' : 'pause' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Song Details -->
+      <div>
+        <div class="mb-4">
+          <p class="text-gray-600 dark:text-gray-400">Artist</p>
+          <p class="text-xl font-medium text-gray-800 dark:text-gray-200">
+            {{ currentSongState?.song?.artist || 'N/A' }}
+          </p>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-gray-600 dark:text-gray-400">Key</p>
+          <div class="flex items-center">
+            <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mr-2">
+              {{ currentSongState?.currentKey || 'C' }}
+            </p>
+            <button
+              class="text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+              (click)="toggleKeyGrid()"
+            >
+              Change Key
+            </button>
+          </div>
+
+          <!-- Key Selection Grid (Hidden by default) -->
+          <div *ngIf="showKeyGrid" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select a key:</p>
+            <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              <button
+                *ngFor="let key of allKeys"
+                class="py-2 px-3 rounded-md text-center"
+                [ngClass]="currentSongState && currentSongState.currentKey === key ?
+                  'bg-blue-500 text-white' :
+                  'bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-700'"
+                (click)="selectKey(key)"
+              >
+                {{ key }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-gray-600 dark:text-gray-400">Tempo</p>
+          <p class="text-xl font-medium text-gray-800 dark:text-gray-200">
+            {{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})
+          </p>
+        </div>
+      </div>
+
+      <!-- Song Structure -->
+      <div>
+        <p class="text-gray-600 dark:text-gray-400 mb-2">Song Structure</p>
+        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+          <div *ngIf="currentSongState?.song?.structure; else noStructure">
+            <div
+              *ngFor="let section of currentSongState?.song?.structure"
+              class="py-2 px-3 mb-2 rounded-md"
+              [ngClass]="{'bg-blue-100 dark:bg-blue-800 font-medium': currentSongState && section === currentSongState.currentSection}"
+            >
+              {{ section }}
+            </div>
+          </div>
+          <ng-template #noStructure>
+            <p class="text-gray-500 dark:text-gray-400 text-center py-4">
+              No song structure available
+            </p>
+          </ng-template>
+        </div>
+
+        <div *ngIf="currentSongState?.song?.notes" class="mt-4">
+          <p class="text-gray-600 dark:text-gray-400 mb-1">Notes</p>
+          <p class="text-sm text-gray-800 dark:text-gray-200 bg-yellow-50 dark:bg-yellow-900 p-3 rounded-lg">
+            {{ currentSongState?.song?.notes }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Responses -->
+  <section>
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Quick Responses</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <button
+        *ngFor="let response of quickResponses"
+        class="bg-gray-200 dark:bg-gray-700 py-2 px-3 rounded-lg shadow hover:bg-blue-200 dark:hover:bg-blue-600 transition"
+        (click)="sendQuickResponse(response)"
+      >
+        {{ response }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Custom Message -->
+  <section>
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Message to Song Leader</h2>
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
+      <div class="mb-4">
+        <textarea
+          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          rows="3"
+          placeholder="Type your message here..."
+          [(ngModel)]="customMessage"
+        ></textarea>
+      </div>
+      <button
+        class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md w-full"
+        [disabled]="!customMessage.trim()"
+        [ngClass]="{'opacity-50 cursor-not-allowed': !customMessage.trim()}"
+        (click)="sendCustomMessage()"
+      >
+        Send Message
+      </button>
+    </div>
+  </section>
+
+  <!-- Message History -->
+  <section>
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Instructions & Updates</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <div *ngIf="messages.length > 0; else noMessages" class="max-h-80 overflow-y-auto">
+        <div
+          *ngFor="let message of messages"
+          class="p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-gray-200">{{ message.content }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ message.timestamp | date:'shortTime' }}</p>
+            </div>
+            <span
+              class="px-2 py-1 text-xs rounded-full"
+              [ngClass]="{
+                'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': message.type === 'KEY_CHANGE',
+                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': message.type === 'TEMPO_CHANGE',
+                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': message.type === 'MUSICAL_INSTRUCTION',
+                'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200': message.type === 'CUSTOM_MESSAGE'
+              }"
+            >
+              {{ message.type.replace('_', ' ') }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <ng-template #noMessages>
+        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+          <span class="material-icons text-4xl mb-2">notifications_none</span>
+          <p>No instructions or updates yet</p>
+        </div>
+      </ng-template>
+    </div>
+  </section>
+</div>

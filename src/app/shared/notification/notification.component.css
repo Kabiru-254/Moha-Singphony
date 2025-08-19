@@ -1,0 +1,69 @@
+.notification {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.notification.ng-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification.ng-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification.ng-leave {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification.ng-leave-active {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+/* Pulse animation for urgent notifications */
+@keyframes pulse-border {
+  0% {
+    border-color: inherit;
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 1); /* red-500 */
+  }
+  100% {
+    border-color: inherit;
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 1.5s infinite;
+  border-width: 2px;
+}
+
+/* Screen border highlight for urgent notifications */
+.notification.urgent::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 4px solid transparent;
+  pointer-events: none;
+  z-index: -1;
+  animation: pulse-screen-border 1.5s infinite;
+}
+
+@keyframes pulse-screen-border {
+  0% {
+    border-color: transparent;
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.5); /* red-500 with opacity */
+  }
+  100% {
+    border-color: transparent;
+  }
+}

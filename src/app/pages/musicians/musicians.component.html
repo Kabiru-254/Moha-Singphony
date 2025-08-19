@@ -1,1 +1,172 @@
-<p>musicians works!</p>
+<div class="p-6 dark:bg-gray-900 dark:text-white h-full flex flex-col space-y-6">
+  <!-- Notification Component -->
+  <app-notification></app-notification>
+
+  <!-- Header -->
+  <header class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">🎹 Musicians Display</h1>
+    <div class="flex items-center">
+      <span class="mr-2 text-sm text-gray-600 dark:text-gray-400">Theme</span>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" (change)="toggleTheme()" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Current Command Flash -->
+  <div *ngIf="latestMessage"
+    class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 animate-pulse"
+    [ngClass]="{'hidden': !showFlash}"
+  >
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-2xl w-full text-center">
+      <div class="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
+        {{ latestMessage.type === MessageType.MUSICAL_INSTRUCTION ? latestMessage.content.instruction :
+           latestMessage.type === MessageType.KEY_CHANGE ? 'Key Change: ' + latestMessage.content.key :
+           latestMessage.type === MessageType.TEMPO_CHANGE ? (latestMessage.content && latestMessage.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
+           latestMessage.type === MessageType.CUSTOM_MESSAGE ? latestMessage.content.text :
+           latestMessage.type === MessageType.GENERAL_COMMUNICATION ? latestMessage.content.text :
+           latestMessage.type === MessageType.SOUND_REQUEST ? latestMessage.content.request :
+           latestMessage.type === MessageType.ACKNOWLEDGMENT ? latestMessage.content.text : 'New Message' }}
+      </div>
+      <p class="text-lg text-gray-600 dark:text-gray-300">
+        From: {{ latestMessage.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
+                latestMessage.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
+      </p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Current Song Info -->
+    <section class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
+          {{ currentSongState?.song?.title || 'No Song Selected' }}
+        </h2>
+        <div class="flex items-center">
+          <span class="material-icons text-3xl mr-2"
+            [ngClass]="currentSongState && currentSongState.isPlaying ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+            {{ currentSongState && currentSongState.isPlaying ? 'play_circle' : 'pause_circle' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-4 text-lg text-gray-600 dark:text-gray-400 mb-6">
+        <div>Artist: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState?.song?.artist || 'N/A' }}</span></div>
+        <div>Tempo: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})</span></div>
+      </div>
+
+      <!-- Current Key Banner -->
+      <div class="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-700 dark:to-purple-800 p-6 rounded-xl shadow-lg text-center mb-6">
+        <h3 class="text-lg font-semibold text-white mb-2">Current Key</h3>
+        <div class="text-6xl md:text-8xl font-bold text-white">
+          {{ currentSongState?.currentKey || 'C' }}
+        </div>
+      </div>
+
+      <!-- Song Structure -->
+      <div>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">Song Structure</h3>
+        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-xl">
+          <div *ngIf="currentSongState?.song?.structure; else noStructure" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div
+              *ngFor="let section of currentSongState?.song?.structure"
+              class="py-3 px-4 rounded-lg text-center text-lg"
+              [ngClass]="currentSongState && section === currentSongState.currentSection ?
+                'bg-blue-500 text-white font-bold shadow-lg' :
+                'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200'"
+            >
+              {{ section }}
+            </div>
+          </div>
+          <ng-template #noStructure>
+            <p class="text-gray-500 dark:text-gray-400 text-center py-4">
+              No song structure available
+            </p>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column -->
+    <div class="flex flex-col gap-6">
+      <!-- Next Song -->
+      <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+          <span class="material-icons mr-2">queue_music</span>
+          Next Song
+        </h3>
+        <div *ngIf="nextSong; else noNextSong" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+          <p class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ nextSong.title }}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <p class="text-gray-600 dark:text-gray-400">{{ nextSong.artist }}</p>
+            <div class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-sm">
+              {{ nextSong.keys[0] }}
+            </div>
+          </div>
+        </div>
+        <ng-template #noNextSong>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl text-center">
+            <p class="text-gray-500 dark:text-gray-400">No next song in queue</p>
+          </div>
+        </ng-template>
+      </section>
+
+      <!-- Latest Commands -->
+      <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex-grow">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+          <span class="material-icons mr-2">notifications_active</span>
+          Latest Commands
+        </h3>
+        <div *ngIf="messages.length > 0; else noMessages" class="space-y-3">
+          <div
+            *ngFor="let message of messages.slice(0, 5)"
+            class="p-4 rounded-xl"
+            [ngClass]="{
+              'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500': message.type === MessageType.KEY_CHANGE,
+              'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500': message.type === MessageType.TEMPO_CHANGE,
+              'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500': message.type === MessageType.MUSICAL_INSTRUCTION,
+              'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500': message.type === MessageType.CUSTOM_MESSAGE,
+              'bg-gray-50 dark:bg-gray-700 border-l-4 border-gray-500': message.type === MessageType.GENERAL_COMMUNICATION,
+              'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500': message.type === MessageType.SOUND_REQUEST
+            }"
+          >
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-bold text-lg text-gray-800 dark:text-gray-200">
+                  {{ message.type === MessageType.MUSICAL_INSTRUCTION ? message.content.instruction :
+                     message.type === MessageType.KEY_CHANGE ? 'Key: ' + message.content.key :
+                     message.type === MessageType.TEMPO_CHANGE ? (message.content && message.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
+                     message.type === MessageType.CUSTOM_MESSAGE ? message.content.text :
+                     message.type === MessageType.GENERAL_COMMUNICATION ? message.content.text :
+                     message.type === MessageType.SOUND_REQUEST ? message.content.request :
+                     message.type === MessageType.ACKNOWLEDGMENT ? message.content.text : 'Unknown message' }}
+                </p>
+                <div class="flex items-center mt-1">
+                  <span class="text-sm text-gray-500">
+                    {{ message.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
+                       message.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
+                  </span>
+                  <span class="mx-2 text-gray-400">•</span>
+                  <span class="text-sm text-gray-500">{{ message.timestamp | date:'shortTime' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noMessages>
+          <div class="p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <span class="material-icons text-4xl mb-2">notifications_none</span>
+            <p>No commands received yet</p>
+          </div>
+        </ng-template>
+      </section>
+    </div>
+  </div>
+
+  <!-- Offline Status -->
+  <div *ngIf="isOffline" class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+    <span class="material-icons mr-2">wifi_off</span>
+    Offline Mode - Showing Last Known State
+  </div>
+</div>

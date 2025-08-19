@@ -1,7 +1,10 @@
 <div class="p-6 dark:bg-gray-900 dark:text-white h-full flex flex-col space-y-6">
+  <!-- Notification Component -->
+  <app-notification></app-notification>
+
   <!-- Header -->
   <header class="flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎶 Song Leader View</h1>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎶 Song Leader Dashboard</h1>
     <div class="flex items-center">
       <span class="mr-2 text-sm text-gray-600 dark:text-gray-400">Theme</span>
       <label class="switch">
@@ -11,100 +14,380 @@
     </div>
   </header>
 
-  <!-- Songs Section -->
-  <section>
+  <!-- Current Song Info -->
+  <section class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
+        {{ currentSongState?.song?.title || 'No Song Selected' }}
+      </h2>
+      <div class="flex items-center">
+        <button
+          class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 mr-2"
+          (click)="togglePlayPause()"
+        >
+          <span class="material-icons">
+            {{ currentSongState?.isPlaying ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+      <div>Artist: <span class="font-medium">{{ currentSongState?.song?.artist || 'N/A' }}</span></div>
+      <div>Key:
+        <span
+          class="font-medium cursor-pointer hover:text-blue-500"
+          (click)="toggleKeyGrid()"
+        >
+          {{ currentSongState?.currentKey || 'C' }}
+        </span>
+      </div>
+      <div>Tempo: <span class="font-medium">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})</span></div>
+      <div>Section: <span class="font-medium">{{ currentSongState?.currentSection || 'N/A' }}</span></div>
+    </div>
+
+    <!-- Key Selection Grid (Hidden by default) -->
+    <div *ngIf="showKeyGrid" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+      <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        <button
+          *ngFor="let key of allKeys"
+          class="py-2 px-3 rounded-md text-center"
+          [ngClass]="currentSongState && currentSongState.currentKey === key ?
+            'bg-blue-500 text-white' :
+            'bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-700'"
+          (click)="selectKey(key)"
+        >
+          {{ key }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Today's Setlist -->
+  <section class="mb-6">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Songs</h2>
-      <button
-        class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-full flex items-center shadow-md"
-        (click)="navigateToSongManagement()"
-      >
-        <span class="material-icons mr-2">add</span> Manage Songs
-      </button>
-    </div>
-    <div *ngIf="songs && songs.length" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div
-        *ngFor="let song of songs"
-        class="group bg-gray-100 dark:bg-gray-800 p-4 rounded-lg shadow-lg flex items-center justify-between hover:bg-blue-100 dark:hover:bg-blue-700 transition"
-        (click)="selectSong(song)"
-      >
-        <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ song.name }}</span>
-        <span class="material-icons text-gray-500 group-hover:text-blue-500">chevron_right</span>
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Today's Setlist</h2>
+      <div class="flex items-center space-x-2">
+        <button
+          class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200"
+          (click)="openSongSetupModal()"
+        >
+          <span class="material-icons mr-2">add</span> Add Song
+        </button>
+        <button
+          class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200"
+          (click)="navigateToSongManagement()"
+        >
+          <span class="material-icons mr-2">playlist_add</span> Manage Songs
+        </button>
       </div>
     </div>
-    <p *ngIf="!songs || songs.length === 0" class="text-gray-500 text-center">
-      No songs available. <span class="text-blue-500 underline cursor-pointer" (click)="navigateToSongManagement()">Add songs</span>.
-    </p>
-  </section>
 
-  <!-- Real-Time Commands -->
-  <section>
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Real-Time Commands</h2>
-    <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
-      <!-- Key Controls -->
-      <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <p class="font-medium text-gray-800 dark:text-gray-200 mb-3">Key: {{ currentKey }}</p>
-        <div class="flex justify-between">
-          <button
-            class="py-2 px-4 bg-green-500 hover:bg-green-600 text-white rounded-md shadow"
-            (click)="transposeKey(1)"
-          >
-            + Key
-          </button>
-          <button
-            class="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md shadow"
-            (click)="transposeKey(-1)"
-          >
-            - Key
-          </button>
+    <!-- Search Bar -->
+    <div class="relative mb-4">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <span class="material-icons text-gray-400">search</span>
+      </div>
+      <input
+        type="text"
+        placeholder="Search songs..."
+        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        [(ngModel)]="searchQuery"
+        (input)="searchSongs()"
+      />
+    </div>
+
+    <!-- Setlist Songs -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-4">
+      <h3 class="text-md font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center">
+        <span class="material-icons mr-2">queue_music</span> Current Setlist
+      </h3>
+      <div *ngIf="currentSetlist?.songs && currentSetlist?.songs?.length" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+        <div
+          *ngFor="let song of currentSetlist?.songs; let i = index"
+          class="group bg-gray-50 dark:bg-gray-700 p-4 rounded-xl shadow flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-200 border-l-4"
+          [ngClass]="{'border-green-500': currentSongState && currentSongState.song && currentSongState.song.id === song.id, 'border-transparent': !currentSongState || !currentSongState.song || currentSongState.song.id !== song.id}"
+          (click)="selectSong(song)"
+        >
+          <div class="flex items-center">
+            <span class="text-gray-500 dark:text-gray-400 mr-3">{{ i + 1 }}</span>
+            <div>
+              <span class="text-md font-medium text-gray-800 dark:text-gray-200">{{ song.title }}</span>
+              <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span class="mr-2">{{ song.artist }}</span>
+                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs">{{ song.keys[0] }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <button
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
+              (click)="broadcastSong(song); $event.stopPropagation();"
+            >
+              <span class="material-icons">cast</span>
+            </button>
+            <button
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
+              (click)="removeFromSetlist(song.id); $event.stopPropagation();"
+            >
+              <span class="material-icons">close</span>
+            </button>
+          </div>
         </div>
       </div>
+      <p *ngIf="!currentSetlist?.songs || currentSetlist?.songs?.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-4">
+        No songs in setlist. Add songs to create your setlist.
+      </p>
+    </div>
+
+    <!-- Search Results -->
+    <div *ngIf="filteredSongs && filteredSongs.length" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+      <h3 class="text-md font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center">
+        <span class="material-icons mr-2">search</span> Search Results
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto pr-2">
+        <div
+          *ngFor="let song of filteredSongs"
+          class="group bg-gray-50 dark:bg-gray-700 p-3 rounded-xl shadow flex flex-col hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-200"
+        >
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-md font-medium text-gray-800 dark:text-gray-200">{{ song.title }}</span>
+            <button
+              class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
+              (click)="addToSetlist(song.id)"
+            >
+              <span class="material-icons text-sm">add</span>
+            </button>
+          </div>
+          <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+            <span class="mr-2">{{ song.artist }}</span>
+            <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs">{{ song.keys[0] }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Quick-Fire Command Cards -->
+  <section class="mb-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Quick Commands</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+      <!-- Transpose Controls -->
+      <button
+        class="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="transposeKey(-1)"
+      >
+        Transpose –
+      </button>
+      <button
+        class="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="transposeKey(1)"
+      >
+        Transpose +
+      </button>
+
       <!-- Tempo Controls -->
-      <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <p class="font-medium text-gray-800 dark:text-gray-200 mb-3">Tempo</p>
-        <div class="flex justify-between">
-          <button
-            class="py-2 px-4 bg-green-500 hover:bg-green-600 text-white rounded-md shadow"
-            (click)="adjustTempo(1)"
-          >
-            + Tempo
-          </button>
-          <button
-            class="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md shadow"
-            (click)="adjustTempo(-1)"
-          >
-            - Tempo
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
       <button
-        *ngFor="let cmd of quickCommands"
-        class="bg-gray-200 dark:bg-gray-700 py-2 px-3 rounded-lg shadow hover:bg-blue-200 dark:hover:bg-blue-600 transition"
-        (click)="sendCommand(cmd)"
+        class="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="adjustTempo('slower')"
       >
-        {{ cmd }}
+        Tempo –
+      </button>
+      <button
+        class="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="adjustTempo('faster')"
+      >
+        Tempo +
+      </button>
+
+      <!-- Musical Instructions -->
+      <button
+        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="sendMusicalInstruction('Break It Down')"
+      >
+        Break It Down
+      </button>
+      <button
+        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="sendMusicalInstruction('Build Up')"
+      >
+        Build Up
+      </button>
+      <button
+        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="sendMusicalInstruction('Keys + Strings Only')"
+      >
+        Keys + Strings Only
+      </button>
+      <button
+        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="sendMusicalInstruction('No Drums')"
+      >
+        No Drums
+      </button>
+      <button
+        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
+        (click)="sendMusicalInstruction('Nice Playing')"
+      >
+        Nice Playing
       </button>
     </div>
   </section>
 
-  <!-- Targeted Commands -->
-  <section>
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Targeted Commands</h2>
-    <div class="flex flex-wrap gap-2">
-      <label
-        *ngFor="let target of availableTargets"
-        class="flex items-center bg-gray-200 dark:bg-gray-700 py-2 px-4 rounded-lg shadow cursor-pointer"
+  <!-- Key Selector -->
+  <section class="mb-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Key Selector</h2>
+    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-3">
+      <button
+        *ngFor="let key of allKeys"
+        class="py-3 px-2 rounded-xl text-center font-bold text-lg transition-all duration-200 transform hover:scale-110"
+        [ngClass]="currentSongState && currentSongState.currentKey === key ?
+          'bg-blue-500 text-white shadow-lg' :
+          'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900 shadow'"
+        (click)="selectKey(key)"
       >
-        <input
-          type="checkbox"
-          class="mr-3 w-4 h-4"
-          [value]="target"
-          [(ngModel)]="selectedTargets"
-        />
-        <span class="text-gray-800 dark:text-gray-200">{{ target }}</span>
-      </label>
+        {{ key }}
+      </button>
     </div>
   </section>
+
+  <!-- Custom Message Section -->
+  <section class="mb-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Custom Message</h2>
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipients</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button
+            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+            [ngClass]="isRecipientSelected(RecipientRole.MUSICIAN) ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
+            (click)="toggleRecipient(RecipientRole.MUSICIAN)"
+          >
+            <div class="flex items-center justify-center">
+              <span class="material-icons mr-2">music_note</span>
+              Musicians
+            </div>
+          </button>
+          <button
+            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+            [ngClass]="isRecipientSelected(RecipientRole.SOUND_TEAM) ?
+              'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
+            (click)="toggleRecipient(RecipientRole.SOUND_TEAM)"
+          >
+            <div class="flex items-center justify-center">
+              <span class="material-icons mr-2">headphones</span>
+              Sound Team
+            </div>
+          </button>
+          <button
+            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+            [ngClass]="isRecipientSelected(RecipientRole.ALL) ?
+              'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
+            (click)="toggleRecipient(RecipientRole.ALL)"
+          >
+            <div class="flex items-center justify-center">
+              <span class="material-icons mr-2">people</span>
+              Everyone
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
+        <textarea
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          rows="3"
+          placeholder="Type your message here..."
+          [(ngModel)]="customMessage"
+        ></textarea>
+      </div>
+      <button
+        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-4 rounded-xl shadow-lg w-full font-medium transition-all duration-200 flex items-center justify-center"
+        [disabled]="!customMessage.trim() || selectedRecipients.length === 0"
+        [ngClass]="{'opacity-50 cursor-not-allowed': !customMessage.trim() || selectedRecipients.length === 0}"
+        (click)="sendCustomMessage()"
+      >
+        <span class="material-icons mr-2">send</span>
+        Send Message
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- Song Setup Modal -->
+<div *ngIf="showSongSetupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md animate-flyIn">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Add New Song</h2>
+      <button
+        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+        (click)="closeSongSetupModal()"
+      >
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <!-- Song Title -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Song Title</label>
+        <input
+          type="text"
+          class="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Enter song title"
+          [(ngModel)]="newSong.title"
+        >
+      </div>
+
+      <!-- Key -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Key</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button
+            *ngFor="let key of allKeys"
+            class="py-2 px-3 rounded-lg text-center transition-all duration-200"
+            [ngClass]="newSong.key === key ?
+              'bg-blue-500 text-white' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900'"
+            (click)="newSong.key = key"
+          >
+            {{ key }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Structure -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Structure (comma separated)</label>
+        <input
+          type="text"
+          class="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Verse, Chorus, Bridge"
+          [(ngModel)]="newSong.structure"
+        >
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Example: Verse 1, Chorus, Verse 2, Chorus, Bridge, Chorus</p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end space-x-3">
+      <button
+        class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+        (click)="closeSongSetupModal()"
+      >
+        Cancel
+      </button>
+      <button
+        class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+        [disabled]="!newSong.title"
+        [ngClass]="{'opacity-50 cursor-not-allowed': !newSong.title}"
+        (click)="saveSong()"
+      >
+        Save Song
+      </button>
+    </div>
+  </div>
 </div>

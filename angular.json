@@ -24,7 +24,9 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              }
+              },
+              "src/manifest.json",
+              "src/assets"
             ],
             "styles": [
               "@angular/material/prebuilt-themes/rose-red.css",

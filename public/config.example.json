@@ -1,0 +1,8 @@
+{
+  "realtime": {
+    "enabled": true,
+    "provider": "firebase",
+    "firebaseDatabaseUrl": "https://YOUR-PROJECT-ID-default-rtdb.firebaseio.com",
+    "roomId": "demo"
+  }
+}

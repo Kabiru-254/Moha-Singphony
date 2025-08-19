@@ -4,26 +4,74 @@
 @tailwind utilities;
 
 :root {
-  --light-mode-bg: #f8e8e8;
-  --dark-mode-bg: #2d2a5c;
+  --surface: #ffffff;
+  --surface-muted: #f7f7f9;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --primary: #111827; /* near-black for minimal look */
+  --ring: #4f46e5; /* indigo accent for focus */
+  --dark-surface: #0f172a; /* slate-900 */
+  --dark-surface-muted: #111827; /* gray-900 */
+  --dark-text: #e5e7eb; /* gray-200 */
+  --dark-text-muted: #9ca3af; /* gray-400 */
 }
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
-/* Custom Switch */
-.switch input {
-  display: none;
+body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: var(--surface-muted); }
+
+/* Dark mode body baseline for consistency */
+.dark body { color: var(--dark-text); background: var(--dark-surface); }
+
+/* Ensure Material Icons always render correctly despite component-scoped font overrides */
+.material-icons,
+.material-icons-outlined,
+.material-icons-round,
+.material-icons-sharp,
+.material-icons-two-tone {
+  font-family: 'Material Icons', 'Material Icons Outlined', 'Material Icons Round', 'Material Icons Sharp', 'Material Icons Two Tone' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px; /* default size for alignment */
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Minimal, elegant base styles */
+@layer base {
+  h1 { @apply text-3xl md:text-4xl font-semibold text-gray-900 dark:text-gray-100; }
+  h2 { @apply text-2xl font-semibold text-gray-900 dark:text-gray-100; }
+  h3 { @apply text-xl font-medium text-gray-800 dark:text-gray-200; }
+  p, label, span { @apply text-gray-700 dark:text-gray-300; }
+}
+
+/* Reusable components */
+@layer components {
+  .card { @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100/60 dark:border-gray-700/50; }
+  .card-muted { @apply bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-700/50; }
+  .btn { @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900; }
+  .btn-ghost { @apply btn bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 focus:ring-indigo-500; }
+  .btn-primary { @apply btn bg-gray-900 text-white hover:bg-black focus:ring-indigo-500; }
+  .input { @apply w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent; }
+  .chip { @apply inline-flex items-center px-2 py-1 rounded-lg text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200; }
+}
+
+/* Custom Switch */
+.switch input { display: none; }
 .switch .slider {
   width: 40px;
   height: 20px;
-  background: #ccc;
+  background: #d1d5db;
   border-radius: 20px;
   position: relative;
   transition: background 0.3s;
 }
-
 .switch .slider:before {
   content: '';
   position: absolute;
@@ -34,13 +82,8 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   background: white;
   border-radius: 50%;
   transition: all 0.3s;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
 }
-
-.switch input:checked + .slider {
-  background: #4caf50;
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
-}
+.switch input:checked + .slider { background: #111827; }
+.switch input:checked + .slider:before { transform: translateX(20px); }
 

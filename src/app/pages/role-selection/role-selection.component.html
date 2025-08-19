@@ -1,116 +1,110 @@
-<section id="roleSelectionSection" class="bg-gray-200 min-h-screen py-16 px-4 md:px-12">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
-    <!-- Card 1: Song Leader -->
-    <div class="selection-card bg-white rounded-3xl shadow-lg p-4 flex flex-col items-center">
-      <img src="assets/mic.svg" class="w-16 h-16">
-      <h3 class="font-jost text-2xl mt-4">Song Leader</h3>
-      <p class="font-jost text-sm text-yellow-500 mt-2 text-center">Psalm 96:1–6 "Oh sing to the LORD a new song; sing to the LORD, all the earth!"</p>
-      <div class="mt-4 w-full" >
-        <!-- Stick figure animation for Song Leader -->
-        <svg class="w-full" width="50" height="120" xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <animateTransform attributeName="transform" type="translate" from="-20,0" to="200,0" dur="10s" repeatCount="indefinite" />
-            <circle cx="25" cy="15" r="10" stroke="#DA9C37" stroke-width="2" fill="none" />
-            <line x1="25" y1="25" x2="25" y2="60" stroke="#2f337c" stroke-width="2" />
-            <line x1="25" y1="30" x2="10" y2="45" stroke="#DA9C37" stroke-width="2">
-              <animate attributeName="x2" from="10" to="15" dur="0.5s" repeatCount="indefinite" />
-              <animate attributeName="y2" from="45" to="50" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="30" x2="40" y2="20" stroke="#DA9C37" stroke-width="2">
-              <animate attributeName="x2" from="40" to="45" dur="0.5s" repeatCount="indefinite" />
-              <animate attributeName="y2" from="20" to="25" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <circle cx="45" cy="25" r="3" fill="black">
-              <animate attributeName="cy" from="25" to="30" dur="0.5s" repeatCount="indefinite" />
-            </circle>
-            <line x1="25" y1="60" x2="15" y2="90" stroke="#2f337c" stroke-width="2" />
-            <line x1="25" y1="60" x2="35" y2="90" stroke="#2f337c" stroke-width="2" />
-          </g>
-        </svg>
+<section id="roleSelectionSection" class="bg-gray-100 dark:bg-gray-900 min-h-screen py-16 px-4 md:px-12">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800 dark:text-white">Select Your Role</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Card 1: Song Leader -->
+      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-blue-500" (click)="selectRole(getRoleByName('Song Leader'))">
+        <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-full mb-4">
+          <img src="assets/mic.svg" class="w-16 h-16">
+        </div>
+        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎤 Song Leader</h3>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.devices }}</p>
+        </div>
+        <div class="space-y-2 w-full mb-4">
+          <div class="flex items-start">
+            <span class="material-icons text-green-500 mr-2">send</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.canSendTo }}</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <span class="material-icons text-blue-500 mr-2">inbox</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.canReceiveFrom }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.description }}</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Sound Team -->
+      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-orange-500" (click)="selectRole(getRoleByName('Sound Team'))">
+        <div class="bg-orange-100 dark:bg-orange-900 p-4 rounded-full mb-4">
+          <img src="assets/mixer.svg" class="w-16 h-16">
+        </div>
+        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎧 Sound Team</h3>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.devices }}</p>
+        </div>
+        <div class="space-y-2 w-full mb-4">
+          <div class="flex items-start">
+            <span class="material-icons text-green-500 mr-2">send</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.canSendTo }}</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <span class="material-icons text-blue-500 mr-2">inbox</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.canReceiveFrom }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-lg w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.description }}</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Musicians -->
+      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-green-500" (click)="selectRole(getRoleByName('Musicians'))">
+        <div class="bg-green-100 dark:bg-green-900 p-4 rounded-full mb-4">
+          <img src="assets/keys.svg" class="w-16 h-16">
+        </div>
+        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎹 Musicians</h3>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.devices }}</p>
+        </div>
+        <div class="space-y-2 w-full mb-4">
+          <div class="flex items-start">
+            <span class="material-icons text-green-500 mr-2">send</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.canSendTo }}</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <span class="material-icons text-blue-500 mr-2">inbox</span>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.canReceiveFrom }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900/30 p-3 rounded-lg w-full">
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.description }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- Card 2: Musicians -->
-    <div class="selection-card bg-white rounded-3xl shadow-lg p-4 flex flex-col items-center">
-      <img src="assets/keys.svg" class="w-16 h-16">
-      <h3 class="font-jost text-2xl mt-4">Musicians</h3>
-      <p class="font-jost text-sm text-yellow-500 mt-2 text-center">Psalm 150:3-5 "Praise him with trumpet sound; praise him with lute and harp! ...tambourine...strings and pipe!"</p>
-      <div class="mt-4 w-full">
-        <!-- Drummer Stick Figure -->
-        <svg class="w-full" width="50" height="120" xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <animateTransform attributeName="transform" type="translate" from="-20,0" to="200,0" dur="10s" repeatCount="indefinite" />
-            <circle cx="25" cy="15" r="10" stroke="black" stroke-width="2" fill="none" />
-            <line x1="25" y1="25" x2="25" y2="60" stroke="black" stroke-width="2" />
-            <line x1="25" y1="30" x2="5" y2="35" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="5" to="10" dur="0.5s" repeatCount="indefinite" />
-              <animate attributeName="y2" from="35" to="40" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="30" x2="45" y2="35" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="45" to="40" dur="0.5s" repeatCount="indefinite" />
-              <animate attributeName="y2" from="35" to="40" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <circle cx="5" cy="35" r="3" fill="black">
-              <animate attributeName="cy" from="35" to="40" dur="0.5s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="45" cy="35" r="3" fill="black">
-              <animate attributeName="cy" from="35" to="40" dur="0.5s" repeatCount="indefinite" />
-            </circle>
-            <line x1="25" y1="60" x2="15" y2="90" stroke="black" stroke-width="2" />
-            <line x1="25" y1="60" x2="35" y2="90" stroke="black" stroke-width="2" />
-          </g>
-        </svg>
-      </div>
-    </div>
-
-    <!-- Card 3: Sound Mixer -->
-    <div class="selection-card bg-white rounded-3xl shadow-lg p-4 flex flex-col items-center">
-      <img src="assets/mixer.svg" class="w-16 h-16">
-      <h3 class="font-jost text-2xl mt-4">Sound Mixer</h3>
-      <p class="font-jost text-sm text-yellow-500 mt-2 text-center">John 4:24 "God is spirit, and those who worship him must worship in spirit and truth."</p>
-      <div class="mt-4 w-full">
-        <!-- Sound Mixer Animation -->
-        <svg class="w-full" width="50" height="120" xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <animateTransform attributeName="transform" type="translate" from="-20,0" to="200,0" dur="10s" repeatCount="indefinite" />
-            <circle cx="25" cy="15" r="10" stroke="black" stroke-width="2" fill="none" />
-            <line x1="25" y1="25" x2="25" y2="60" stroke="black" stroke-width="2" />
-            <line x1="25" y1="30" x2="10" y2="45" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="10" to="15" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="30" x2="40" y2="45" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="40" to="45" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="60" x2="15" y2="90" stroke="black" stroke-width="2" />
-            <line x1="25" y1="60" x2="35" y2="90" stroke="black" stroke-width="2" />
-          </g>
-        </svg>
-      </div>
-    </div>
-
-    <!-- Card 4: Deacon -->
-    <div class="selection-card bg-white rounded-3xl shadow-lg p-4 flex flex-col items-center">
-      <img src="assets/deacon.svg" class="w-16 h-16">
-      <h3 class="font-jost text-2xl mt-4">Deacon</h3>
-      <p class="font-jost text-sm text-yellow-500 mt-2 text-center">1 Timothy 3:8-13 "Deacons likewise must be dignified, not double-tongued, not addicted to much wine, not greedy for dishonest gain."</p>
-      <div class="mt-4 w-full">
-        <!-- Deacon Stick Figure -->
-        <svg class="w-full" width="50" height="120" xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <animateTransform attributeName="transform" type="translate" from="-20,0" to="200,0" dur="10s" repeatCount="indefinite" />
-            <circle cx="25" cy="15" r="10" stroke="black" stroke-width="2" fill="none" />
-            <line x1="25" y1="25" x2="25" y2="60" stroke="black" stroke-width="2" />
-            <line x1="25" y1="30" x2="10" y2="45" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="10" to="15" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="30" x2="40" y2="45" stroke="black" stroke-width="2">
-              <animate attributeName="x2" from="40" to="45" dur="0.5s" repeatCount="indefinite" />
-            </line>
-            <line x1="25" y1="60" x2="15" y2="90" stroke="black" stroke-width="2" />
-            <line x1="25" y1="60" x2="35" y2="90" stroke="black" stroke-width="2" />
-          </g>
-        </svg>
-      </div>
+    <div class="mt-12 text-center">
+      <button class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg flex items-center mx-auto" (click)="toggleTheme()">
+        <span class="material-icons mr-2">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</span>
+        Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+      </button>
     </div>
   </div>
 </section>

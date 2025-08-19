@@ -1,0 +1,8 @@
+{
+  "realtime": {
+    "enabled": false,
+    "provider": "firebase",
+    "firebaseDatabaseUrl": "",
+    "roomId": "demo"
+  }
+}
