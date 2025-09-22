@@ -18,10 +18,10 @@
 }
 
 html, body { height: 100%; }
-body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: var(--surface-muted); }
+body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 35%, transparent 75%), var(--surface-muted); }
 
 /* Dark mode body baseline for consistency */
-.dark body { color: var(--dark-text); background: var(--dark-surface); }
+.dark body { color: var(--dark-text); background: linear-gradient(180deg, rgba(59,130,246,0.04) 0%, rgba(59,130,246,0.015) 35%, transparent 75%), var(--dark-surface); }
 
 /* Ensure Material Icons always render correctly despite component-scoped font overrides */
 .material-icons,
@@ -104,7 +104,7 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
 /* Variable overrides applied to html to avoid ::root issue */
 html {
   --surface: #ffffff;
-  --surface-muted: #f3f8ff;
+  --surface-muted: #eef4ff; /* slightly stronger light blue tint */
   --text: #0f172a;
   --text-muted: #546074;
   --primary: #0f172a;

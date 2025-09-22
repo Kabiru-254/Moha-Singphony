@@ -89,6 +89,7 @@ export class PianistComponent implements OnInit, OnDestroy {
   toggleTheme() {
     this.theme = this.theme === 'light' ? 'dark' : 'light';
     document.documentElement.classList.toggle('dark', this.theme === 'dark');
+    try { localStorage.setItem('theme', this.theme); } catch {}
   }
 
   // Send a quick response

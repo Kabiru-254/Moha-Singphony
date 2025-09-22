@@ -281,6 +281,18 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     this.notificationService.showNotification('Song removed from setlist', 'info');
   }
 
+  isInSetlist(songId: number): boolean {
+    return !!this.currentSetlist?.songs?.some(s => s.id === songId);
+  }
+
+  addToSetlistAndClearSearch(songId: number) {
+    if (!this.isInSetlist(songId)) {
+      this.addToSetlist(songId);
+    }
+    this.searchQuery = '';
+    this.filteredSongs = this.songs;
+  }
+
   broadcastSong(song: Song) {
     this.selectSong(song);
     this.messageService.sendMessage({
@@ -313,14 +325,21 @@ export class SongleaderComponent implements OnInit, OnDestroy {
         .map(item => item.trim())
         .filter(item => item.length > 0);
 
-      this.songService.addSong({
+      const created = this.songService.addSong({
         title: this.newSong.title,
         keys: [this.newSong.key],
         tempo: 100, // Default medium tempo
         structure: structureArray.length > 0 ? structureArray : ['Verse', 'Chorus']
       });
 
-      this.notificationService.showNotification('Song created successfully', 'success');
+      // Immediately add to today's setlist
+      if (created && created.id != null) {
+        this.songService.addToSetlist(created.id);
+        this.notificationService.showNotification('Song created and added to setlist', 'success');
+      } else {
+        this.notificationService.showNotification('Song created successfully', 'success');
+      }
+
       this.closeSongSetupModal();
     }
   }

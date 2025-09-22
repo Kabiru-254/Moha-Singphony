@@ -88,13 +88,14 @@ export class SongService {
   }
 
   // Add song
-  addSong(song: Omit<Song, 'id'>): void {
+  addSong(song: Omit<Song, 'id'>): Song {
     const newSong: Song = {
       ...song,
       id: this.generateId()
     };
     this.songs = [...this.songs, newSong];
     this.songsSubject.next(this.songs);
+    return newSong;
   }
 
   // Update song
