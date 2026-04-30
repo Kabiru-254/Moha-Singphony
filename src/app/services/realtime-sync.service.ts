@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { MessageService, Message, CurrentSongState } from './message.service';
+import { SongService, Setlist } from './song.service';
 
 interface RealtimeConfig {
   provider?: 'firebase';
@@ -13,9 +14,10 @@ export class RealtimeSyncService {
   private clientId = this.generateId();
   private config: RealtimeConfig | null = null;
   private eventSource?: EventSource;
+  private songEventSource?: EventSource;
   private initialized = false;
 
-  constructor(private messageService: MessageService) {}
+  constructor(private messageService: MessageService, private songService: SongService) {}
 
   async initFromConfig(): Promise<void> {
     if (this.initialized) return;
@@ -57,12 +59,42 @@ export class RealtimeSyncService {
       fetch(path, { method: 'PUT', body: JSON.stringify(outgoing) }).catch(() => {});
     });
 
-    // Outgoing currentSongState -> Firebase
-    this.messageService.currentSong$.subscribe((state: CurrentSongState) => {
+    // Outgoing currentSongState -> Firebase (only on local user actions)
+    this.messageService.currentSongLocal$.subscribe((state: CurrentSongState) => {
       if (!this.config) return;
       const withOrigin: any = { ...state, _originId: this.clientId };
       const path = `${this.config.firebaseDatabaseUrl}/rooms/${encodeURIComponent(this.config.roomId!)}/currentSong.json`;
       fetch(path, { method: 'PUT', body: JSON.stringify(withOrigin) }).catch(() => {});
+    });
+
+    // Outgoing setlists -> Firebase (only on local mutations)
+    this.songService.setlistsLocal$.subscribe(map => {
+      if (!this.config) return;
+      const room = encodeURIComponent(this.config.roomId!);
+      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/setlists.json`;
+      // Serialize Dates to ISO strings
+      const serialized: Record<string, any> = {};
+      Object.keys(map || {}).forEach(id => {
+        const sl: any = map[id];
+        serialized[id] = { ...sl, date: sl?.date instanceof Date ? sl.date.toISOString() : sl?.date };
+      });
+      fetch(path, { method: 'PUT', body: JSON.stringify(serialized) }).catch(() => {});
+    });
+
+    // Outgoing active setlist id -> Firebase (only on local changes)
+    this.songService.activeSetlistLocal$.subscribe(id => {
+      if (!this.config) return;
+      const room = encodeURIComponent(this.config.roomId!);
+      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/activeSetlistId.json`;
+      fetch(path, { method: 'PUT', body: JSON.stringify(id) }).catch(() => {});
+    });
+
+    // Outgoing broadcast setlist id -> Firebase (only on local changes)
+    this.songService.broadcastSetlistLocal$.subscribe(id => {
+      if (!this.config) return;
+      const room = encodeURIComponent(this.config.roomId!);
+      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/broadcastSetlistId.json`;
+      fetch(path, { method: 'PUT', body: JSON.stringify(id) }).catch(() => {});
     });
   }
 
@@ -74,12 +106,14 @@ export class RealtimeSyncService {
     // Messages SSE
     const messagesUrl = `${base}/rooms/${room}/messages.json`;
     const currentSongUrl = `${base}/rooms/${room}/currentSong.json`;
+    const setlistsUrl = `${base}/rooms/${room}/setlists.json`;
+    const activeSetlistUrl = `${base}/rooms/${room}/activeSetlistId.json`;
 
-    // Firebase RTDB REST streaming uses text/event-stream by appending .json and setting header. EventSource will set that.
+    // Firebase RTDB REST streaming uses text/event-stream with event types 'put' and 'patch'
     const es = new EventSource(messagesUrl);
     this.eventSource = es;
 
-    es.onmessage = (event) => {
+    const handleMessagesEvent = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data);
         // Firebase RTDB streaming payload shape: { path: string, data: any }
@@ -95,13 +129,18 @@ export class RealtimeSyncService {
         }
       } catch (_) {}
     };
+
+    es.addEventListener('put', handleMessagesEvent as EventListener);
+    es.addEventListener('patch', handleMessagesEvent as EventListener);
     es.onerror = () => {
       // On error, EventSource will retry; nothing to do
     };
 
     // Current song SSE for realtime updates
     const esSong = new EventSource(currentSongUrl);
-    esSong.onmessage = (event) => {
+    this.songEventSource = esSong;
+
+    const handleSongEvent = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data);
         const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
@@ -112,9 +151,55 @@ export class RealtimeSyncService {
         this.messageService.setCurrentSongStateFromRemote(copy as CurrentSongState);
       } catch {}
     };
+
+    esSong.addEventListener('put', handleSongEvent as EventListener);
+    esSong.addEventListener('patch', handleSongEvent as EventListener);
     esSong.onerror = () => {
       // EventSource auto-reconnects; no-op
     };
+
+    // Setlists SSE for realtime updates
+    const esSetlists = new EventSource(setlistsUrl);
+    const handleSetlistsEvent = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
+        if (data == null) return;
+        // Coercion of dates happens in SongService
+        this.songService.setSetlistsFromRemote(data as Record<string, Setlist>);
+      } catch {}
+    };
+    esSetlists.addEventListener('put', handleSetlistsEvent as EventListener);
+    esSetlists.addEventListener('patch', handleSetlistsEvent as EventListener);
+    esSetlists.onerror = () => {};
+
+    // Active setlist id SSE
+    const esActive = new EventSource(activeSetlistUrl);
+    const handleActiveEvent = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
+        // data can be string id or null
+        this.songService.setActiveSetlistFromRemote(data as string | null);
+      } catch {}
+    };
+    esActive.addEventListener('put', handleActiveEvent as EventListener);
+    esActive.addEventListener('patch', handleActiveEvent as EventListener);
+    esActive.onerror = () => {};
+
+    // Broadcast setlist id SSE
+    const broadcastUrl = `${base}/rooms/${room}/broadcastSetlistId.json`;
+    const esBroadcast = new EventSource(broadcastUrl);
+    const handleBroadcastEvent = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
+        this.songService.setBroadcastSetlistFromRemote(data as string | null);
+      } catch {}
+    };
+    esBroadcast.addEventListener('put', handleBroadcastEvent as EventListener);
+    esBroadcast.addEventListener('patch', handleBroadcastEvent as EventListener);
+    esBroadcast.onerror = () => {};
   }
 
   private tryIngestMessage(val: any) {

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
+import { Subscription, combineLatest } from 'rxjs';
 
 import {MessageService, RecipientRole, CurrentSongState, MessageType, Message, Song} from '../../services/message.service';
 import { NotificationService } from '../../services/notification.service';
@@ -41,28 +41,24 @@ export class MusiciansComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to current song updates
+    // Subscribe to current song and broadcast setlist to compute next song robustly
     this.subscriptions.add(
-      this.messageService.currentSong$.subscribe(songState => {
+      combineLatest([
+        this.messageService.currentSong$,
+        this.songService.broadcastSetlist$
+      ]).subscribe(([songState, setlist]) => {
         this.currentSongState = songState;
-      })
-    );
-
-    // Subscribe to setlist updates to get next song
-    this.subscriptions.add(
-      this.songService.setlist$.subscribe(setlist => {
-        if (setlist.songs.length > 0 && this.currentSongState?.song) {
-          // Find the current song index in the setlist
-          const currentIndex = setlist.songs.findIndex(song => song.id === this.currentSongState?.song?.id);
-
-          // If there's a next song in the setlist, set it as nextSong
-          if (currentIndex !== -1 && currentIndex < setlist.songs.length - 1) {
-            this.nextSong = setlist.songs[currentIndex + 1];
+        if (setlist && setlist.songs && setlist.songs.length > 0) {
+          if (songState?.song) {
+            const currentIndex = setlist.songs.findIndex(s => s.id === songState.song!.id);
+            this.nextSong = currentIndex !== -1 && currentIndex < setlist.songs.length - 1
+              ? setlist.songs[currentIndex + 1]
+              : null;
           } else {
-            this.nextSong = null;
+            this.nextSong = setlist.songs[0] || null;
           }
         } else {
-          this.nextSong = setlist.songs.length > 0 ? setlist.songs[0] : null;
+          this.nextSong = null;
         }
       })
     );

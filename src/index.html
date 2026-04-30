@@ -18,16 +18,16 @@
     (function() {
       try {
         var lsTheme = localStorage.getItem('theme');
-        if (lsTheme === 'light') {
-          document.documentElement.classList.remove('dark');
-        } else {
-          // Default to dark when no preference stored
+        // Make light the default when no preference is stored
+        if (lsTheme === 'dark') {
           document.documentElement.classList.add('dark');
-          if (!lsTheme) localStorage.setItem('theme', 'dark');
+        } else {
+          // Default to light: ensure dark class is removed
+          document.documentElement.classList.remove('dark');
         }
       } catch (e) {
-        // If localStorage blocked, still default to dark
-        document.documentElement.classList.add('dark');
+        // If localStorage is blocked, default to light
+        document.documentElement.classList.remove('dark');
       }
     })();
   </script>

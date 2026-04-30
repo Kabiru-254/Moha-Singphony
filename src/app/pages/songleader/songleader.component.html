@@ -69,6 +69,13 @@
       <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Today's Setlist</h2>
       <div class="flex items-center space-x-2">
         <button
+          class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200 mr-2"
+          (click)="broadcastSetlist()"
+          [disabled]="!currentSetlist || !currentSetlist.songs.length"
+        >
+          <span class="material-icons mr-2">send</span> Broadcast Setlist
+        </button>
+        <button
           class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200"
           (click)="openSongSetupModal()"
         >
@@ -195,31 +202,31 @@
       <!-- Musical Instructions -->
       <button
         class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Break It Down')"
+        (click)="sendMusicalInstruction('Break it down')"
       >
         Break It Down
       </button>
       <button
         class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Build Up')"
+        (click)="sendMusicalInstruction('Build up')"
       >
         Build Up
       </button>
       <button
         class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Keys + Strings Only')"
+        (click)="sendMusicalInstruction('Keys+Strings Only')"
       >
         Keys + Strings Only
       </button>
       <button
         class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('No Drums')"
+        (click)="sendMusicalInstruction('No drums')"
       >
         No Drums
       </button>
       <button
         class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Nice Playing')"
+        (click)="sendMusicalInstruction('Nice playing')"
       >
         Nice Playing
       </button>

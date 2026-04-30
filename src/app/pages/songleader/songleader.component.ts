@@ -139,7 +139,7 @@ export class SongleaderComponent implements OnInit, OnDestroy {
   }
 
   navigateToSongManagement() {
-    this.router.navigate(['/song-list-creation']);
+    this.router.navigate(['/song-leader']);
   }
 
   searchSongs() {
@@ -158,11 +158,10 @@ export class SongleaderComponent implements OnInit, OnDestroy {
   }
 
   selectKey(key: string) {
-    if (this.currentSongState && this.currentSongState.song) {
-      this.messageService.updateCurrentSong({
-        currentKey: key
-      });
-    }
+    // Allow key selection even if no song is currently selected; update global state and broadcast locally
+    this.messageService.updateCurrentSong({
+      currentKey: key
+    });
     this.showKeyGrid = false;
   }
 
@@ -272,12 +271,12 @@ export class SongleaderComponent implements OnInit, OnDestroy {
 
   // Setlist management methods
   addToSetlist(songId: number) {
-    this.songService.addToSetlist(songId);
+    this.songService.addToActiveSetlist(songId);
     this.notificationService.showNotification('Song added to setlist', 'success');
   }
 
   removeFromSetlist(songId: number) {
-    this.songService.removeFromSetlist(songId);
+    this.songService.removeFromActiveSetlist(songId);
     this.notificationService.showNotification('Song removed from setlist', 'info');
   }
 
@@ -302,6 +301,13 @@ export class SongleaderComponent implements OnInit, OnDestroy {
       recipients: [RecipientRole.MUSICIAN, RecipientRole.SOUND_TEAM]
     });
     this.notificationService.showNotification(`Broadcasting: ${song.title}`, 'success');
+  }
+
+  broadcastSetlist() {
+    if (this.currentSetlist) {
+      this.songService.setBroadcastSetlist(this.currentSetlist.id);
+      this.notificationService.showNotification('Setlist broadcasted to team', 'success');
+    }
   }
 
   // Song setup modal methods
@@ -334,7 +340,7 @@ export class SongleaderComponent implements OnInit, OnDestroy {
 
       // Immediately add to today's setlist
       if (created && created.id != null) {
-        this.songService.addToSetlist(created.id);
+        this.songService.addToActiveSetlist(created.id);
         this.notificationService.showNotification('Song created and added to setlist', 'success');
       } else {
         this.notificationService.showNotification('Song created successfully', 'success');

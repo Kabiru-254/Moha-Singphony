@@ -67,13 +67,18 @@ export class MessageService {
     tempo: 100, // Default tempo value (100 = medium)
     isPlaying: false
   });
+  // Emits only for local (this-client) initiated song state changes.
+  private currentSongLocalSubject = new Subject<CurrentSongState>();
 
   // Observable streams
   public messages$ = this.messagesSubject.asObservable();
   public currentSong$ = this.currentSongSubject.asObservable();
+  public currentSongLocal$ = this.currentSongLocalSubject.asObservable();
 
   // Message history
   private messageHistory: Message[] = [];
+  // Session start time to suppress historical notifications on first load
+  private sessionStart: Date = new Date();
 
   constructor() { }
 
@@ -96,17 +101,37 @@ export class MessageService {
     if (this.messageHistory.find(m => m.id === completeMessage.id)) {
       return;
     }
-    this.messageHistory.push(completeMessage);
-    this.messagesSubject.next(completeMessage);
+
+    // Sanitize incoming message to avoid runtime errors from malformed payloads
+    const safeRecipients = Array.isArray((completeMessage as any).recipients)
+      ? (completeMessage as any).recipients
+      : [RecipientRole.ALL];
+    const safeTimestamp = (completeMessage as any).timestamp instanceof Date
+      ? (completeMessage as any).timestamp
+      : new Date((completeMessage as any).timestamp || Date.now());
+
+    const sanitized: Message = {
+      ...completeMessage,
+      recipients: safeRecipients,
+      timestamp: safeTimestamp
+    } as Message;
+
+    this.messageHistory.push(sanitized);
+    this.messagesSubject.next(sanitized);
   }
 
-  // Update current song
+  // Update current song (local user action)
   updateCurrentSong(songState: Partial<CurrentSongState>): void {
     const currentState = this.currentSongSubject.getValue();
-    this.currentSongSubject.next({
+    const nextState: CurrentSongState = {
       ...currentState,
       ...songState
-    });
+    } as CurrentSongState;
+
+    // Update global observable for local UI
+    this.currentSongSubject.next(nextState);
+    // Emit on local-only stream so transports can publish to network
+    this.currentSongLocalSubject.next(nextState);
 
     // If key or tempo changed, send a message
     if (songState.currentKey && songState.currentKey !== currentState.currentKey) {
@@ -142,7 +167,17 @@ export class MessageService {
   getMessagesForRole(role: RecipientRole): Observable<Message> {
     return new Observable<Message>(observer => {
       const subscription = this.messages$.subscribe(message => {
-        if (message.recipients.includes(role) || message.recipients.includes(RecipientRole.ALL)) {
+        const recipientsArr: RecipientRole[] = Array.isArray((message as any).recipients)
+          ? (message as any).recipients
+          : [RecipientRole.ALL];
+
+        // Only emit notifications for messages created at/after this session started
+        const ts = (message as any).timestamp instanceof Date
+          ? ((message as any).timestamp as Date)
+          : new Date((message as any).timestamp);
+        const isRecent = ts && ts.getTime() >= this.sessionStart.getTime();
+
+        if (isRecent && (recipientsArr.includes(role) || recipientsArr.includes(RecipientRole.ALL))) {
           observer.next(message);
         }
       });
