@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Message, MessageType } from './message.service';
 
+export type NotificationType = 'cue' | 'request' | 'resolved' | 'urgent' | 'info';
+
 export interface Notification {
   id: string;
   message: Message;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: NotificationType;
   title: string;
   content: string;
   timestamp: Date;
@@ -49,7 +51,7 @@ export class NotificationService {
   }
 
   // Show a simple notification with a message and type
-  showNotification(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): void {
+  showNotification(message: string, type: NotificationType = 'info'): void {
     const notification: Notification = {
       id: this.generateId(),
       message: null as any, // No associated message
@@ -59,7 +61,7 @@ export class NotificationService {
       timestamp: new Date(),
       duration: 5000, // Default 5 seconds
       isRead: false,
-      isUrgent: type === 'error' || type === 'warning'
+      isUrgent: type === 'urgent'
     };
 
     this.addNotification(notification);
@@ -92,7 +94,7 @@ export class NotificationService {
 
   // Map a message to a notification
   private mapMessageToNotification(message: Message): Notification {
-    let type: 'info' | 'success' | 'warning' | 'error' = 'info';
+    let type: NotificationType = 'info';
     let title = 'New Message';
     let content = '';
     let isUrgent = false;
@@ -100,28 +102,30 @@ export class NotificationService {
 
     switch (message.type) {
       case MessageType.KEY_CHANGE:
-        type = 'success';
+        type = 'cue';
         title = 'Key Change';
         content = `Key changed to ${message.content.key}`;
         break;
       case MessageType.TEMPO_CHANGE:
-        type = 'success';
+        type = 'cue';
         title = 'Tempo Change';
         content = message.content && message.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo';
         break;
       case MessageType.MUSICAL_INSTRUCTION:
-        type = 'warning';
+        type = 'cue';
         title = 'Musical Instruction';
         content = message.content.instruction;
-        isUrgent = true;
-        duration = 8000; // Longer duration for instructions
         break;
       case MessageType.SOUND_REQUEST:
-        type = 'error';
+        type = 'request';
         title = 'Sound Request';
         content = message.content.request;
-        isUrgent = true;
-        duration = 10000; // Longer duration for sound issues
+        duration = 0; // Persist until manually dismissed
+        break;
+      case MessageType.ACKNOWLEDGMENT:
+        type = 'resolved';
+        title = 'Request Resolved';
+        content = message.content.text || 'Issue has been resolved';
         break;
       case MessageType.GENERAL_COMMUNICATION:
         type = 'info';
@@ -129,16 +133,20 @@ export class NotificationService {
         content = message.content.text;
         break;
       case MessageType.SERVICE_COORDINATION:
-        type = 'warning';
+        type = 'urgent';
         title = 'Service Coordination';
         content = message.content.instruction;
         isUrgent = true;
+        duration = 0; // Persist until manually dismissed
         break;
       case MessageType.CUSTOM_MESSAGE:
-        type = 'info';
+        type = message.content.isUrgent ? 'urgent' : 'info';
         title = message.content.title || 'Custom Message';
         content = message.content.text;
         isUrgent = message.content.isUrgent || false;
+        if (isUrgent) {
+          duration = 0; // Urgent messages persist
+        }
         break;
       default:
         content = JSON.stringify(message.content);

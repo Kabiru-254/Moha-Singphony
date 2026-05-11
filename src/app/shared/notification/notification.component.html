@@ -1,25 +1,67 @@
-<div class="fixed top-4 right-4 z-50 w-80 space-y-2">
+<!-- Urgent Notification Screen Vignette -->
+<div 
+  *ngIf="hasUrgentNotification()" 
+  class="fixed inset-0 pointer-events-none z-40 urgent-vignette"
+></div>
+
+<!-- Notification Stack -->
+<div class="fixed top-4 right-4 z-50 w-80 space-y-2 notification-stack">
   <div
-    *ngFor="let notification of notifications"
+    *ngFor="let notification of notifications; trackBy: trackByNotificationId"
     [@slideInOut]
-    class="notification p-4 rounded-lg shadow-lg border-l-4 flex items-start"
-    [ngClass]="[getNotificationClass(notification.type), getUrgentClass(notification.isUrgent)]"
+    class="notification-card rounded-2xl border border-white/[0.07] flex items-start p-4 relative overflow-hidden transition-transform duration-200 ease-out"
+    [ngClass]="getNotificationClasses(notification)"
+    [attr.role]="notification.isUrgent ? 'alert' : 'status'"
+    (mouseenter)="onNotificationHover(notification, true)"
+    (mouseleave)="onNotificationHover(notification, false)"
   >
-    <div class="flex-shrink-0 mr-3">
-      <span class="material-icons">{{ getNotificationIcon(notification.type) }}</span>
+    <!-- Type-colored left border -->
+    <div 
+      class="absolute left-0 top-0 bottom-0 w-1"
+      [ngClass]="getLeftBorderClass(notification)"
+    ></div>
+
+    <!-- Icon Container -->
+    <div 
+      class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mr-3"
+      [ngClass]="getIconContainerClass(notification.type)"
+    >
+      <span 
+        class="material-icons text-[20px]"
+        [ngClass]="getIconColorClass(notification.type)"
+      >
+        {{ getNotificationIcon(notification.type) }}
+      </span>
     </div>
-    <div class="flex-grow">
-      <h4 class="font-bold mb-1">{{ notification.title }}</h4>
-      <p class="text-sm">{{ notification.content }}</p>
-      <div class="text-xs text-gray-500 mt-1">
+
+    <!-- Content -->
+    <div class="flex-grow min-w-0">
+      <h4 class="text-white text-sm font-semibold leading-tight mb-0.5">
+        {{ notification.title }}
+      </h4>
+      <p class="text-[#8A93A8] text-[13px] leading-relaxed mb-1">
+        {{ notification.content }}
+      </p>
+      <div class="text-[#3D4558] text-[11px]">
         {{ notification.timestamp | date:'shortTime' }}
       </div>
     </div>
+
+    <!-- Dismiss Button -->
     <button
-      class="ml-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+      class="flex-shrink-0 ml-2 w-8 h-8 flex items-center justify-center text-[#3D4558] hover:text-[#8A93A8] focus:outline-none transition-colors duration-150"
       (click)="dismiss(notification)"
+      aria-label="Dismiss notification"
     >
-      <span class="material-icons text-sm">close</span>
+      <span class="material-icons text-[20px]">close</span>
     </button>
+
+    <!-- Auto-dismiss Progress Bar -->
+    <div 
+      *ngIf="shouldShowProgress(notification)"
+      class="absolute bottom-0 left-0 h-[1px] transition-all duration-100 linear"
+      [ngClass]="getProgressBarClass(notification.type)"
+      [style.width.%]="getProgressWidth(notification)"
+    ></div>
   </div>
 </div>

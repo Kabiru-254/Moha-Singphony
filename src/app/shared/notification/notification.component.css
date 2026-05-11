@@ -1,69 +1,52 @@
-.notification {
-  transition: all 0.3s ease;
-  max-height: 200px;
-  overflow: hidden;
+/* Notification Stack Transitions */
+.notification-stack {
+  transition: all 200ms ease-out;
 }
 
-.notification.ng-enter {
-  opacity: 0;
-  transform: translateX(100%);
+.notification-card {
+  will-change: transform, opacity;
 }
 
-.notification.ng-enter-active {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.notification.ng-leave {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.notification.ng-leave-active {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-/* Pulse animation for urgent notifications */
+/* Urgent Notification Pulsing Border */
 @keyframes pulse-border {
-  0% {
-    border-color: inherit;
+  0%, 100% {
+    background-color: var(--type-color, #6366F1);
   }
   50% {
-    border-color: rgba(239, 68, 68, 1); /* red-500 */
-  }
-  100% {
-    border-color: inherit;
+    background-color: #EF4444; /* red-500 */
   }
 }
 
-.animate-pulse-border {
+.pulse-border {
   animation: pulse-border 1.5s infinite;
-  border-width: 2px;
 }
 
-/* Screen border highlight for urgent notifications */
-.notification.urgent::before {
+/* Urgent Notification Background Tint */
+.urgent-notification {
+  background-color: rgba(22, 29, 46, 1) !important;
+  position: relative;
+}
+
+.urgent-notification::before {
   content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 4px solid transparent;
+  position: absolute;
+  inset: 0;
+  background-color: rgba(239, 68, 68, 0.06);
+  border-radius: inherit;
   pointer-events: none;
-  z-index: -1;
-  animation: pulse-screen-border 1.5s infinite;
 }
 
-@keyframes pulse-screen-border {
-  0% {
-    border-color: transparent;
+/* Urgent Screen Vignette */
+@keyframes pulse-vignette {
+  0%, 100% {
+    opacity: 0.15;
   }
   50% {
-    border-color: rgba(239, 68, 68, 0.5); /* red-500 with opacity */
+    opacity: 0.25;
   }
-  100% {
-    border-color: transparent;
-  }
+}
+
+.urgent-vignette {
+  box-shadow: inset 0 0 120px 40px rgba(239, 68, 68, 0.15);
+  animation: pulse-vignette 1.5s infinite;
 }
