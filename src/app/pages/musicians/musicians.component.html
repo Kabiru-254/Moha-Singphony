@@ -1,28 +1,16 @@
-<div class="min-h-screen p-4 md:p-6 w-full">
-  <div class="container mx-auto max-w-6xl flex flex-col space-y-8">
+<div class="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-[#0f172a] font-['Outfit']">
   <!-- Notification Component -->
   <app-notification></app-notification>
 
-  <!-- Header -->
-  <header class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">🎹 Musicians Display</h1>
-    <button
-      (click)="toggleTheme()"
-      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      aria-label="Toggle theme"
-    >
-      <span class="material-icons text-base">{{ theme === 'dark' ? 'dark_mode' : 'light_mode' }}</span>
-      <span class="text-sm hidden sm:inline">{{ theme === 'dark' ? 'Dark' : 'Light' }}</span>
-    </button>
-  </header>
+  <!-- Background Ambience -->
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
   <!-- Current Command Flash -->
-  <div *ngIf="latestMessage"
-    class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 animate-pulse"
-    [ngClass]="{'hidden': !showFlash}"
+  <div *ngIf="latestMessage && showFlash"
+    class="fixed inset-0 bg-black/80 dark:bg-black/90 flex items-center justify-center z-[200] backdrop-blur-sm"
   >
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-2xl w-full text-center">
-      <div class="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
+    <div class="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-2xl max-w-3xl w-full text-center mx-4 border border-gray-200 dark:border-gray-700">
+      <div class="text-4xl lg:text-5xl font-bold mb-6 text-gray-900 dark:text-white">
         {{ latestMessage.type === MessageType.MUSICAL_INSTRUCTION ? latestMessage.content.instruction :
            latestMessage.type === MessageType.KEY_CHANGE ? 'Key Change: ' + latestMessage.content.key :
            latestMessage.type === MessageType.TEMPO_CHANGE ? (latestMessage.content && latestMessage.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
@@ -31,143 +19,111 @@
            latestMessage.type === MessageType.SOUND_REQUEST ? latestMessage.content.request :
            latestMessage.type === MessageType.ACKNOWLEDGMENT ? latestMessage.content.text : 'New Message' }}
       </div>
-      <p class="text-lg text-gray-600 dark:text-gray-300">
+      <p class="text-xl text-gray-600 dark:text-gray-300">
         From: {{ latestMessage.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
                 latestMessage.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
       </p>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Current Song Info -->
-    <section class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
-          {{ currentSongState?.song?.title || 'No Song Selected' }}
-        </h2>
-        <div class="flex items-center">
-          <span class="material-icons text-3xl mr-2"
-            [ngClass]="currentSongState && currentSongState.isPlaying ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
-            {{ currentSongState && currentSongState.isPlaying ? 'play_circle' : 'pause_circle' }}
-          </span>
-        </div>
-      </div>
+  <!-- Main Content Canvas -->
+  <main class="flex flex-col items-center justify-center text-center max-w-[1400px] w-full px-8 lg:px-16 xl:px-24 space-y-8 lg:space-y-12 relative z-10">
+    
+    <!-- Key Badge - HIGHLY VISIBLE -->
+    <div class="px-12 lg:px-16 py-4 lg:py-5 bg-indigo-600 dark:bg-indigo-500 rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-200">
+      <span class="text-white font-bold text-5xl lg:text-7xl xl:text-8xl tracking-tight">
+        {{ currentSongState?.currentKey || 'C Major' }}
+      </span>
+    </div>
 
-      <div class="flex flex-wrap gap-4 text-lg text-gray-600 dark:text-gray-400 mb-6">
-        <div>Tempo: <span class="font-medium text-gray-800 dark:text-gray-200">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }}</span></div>
-      </div>
+    <!-- Song Name -->
+    <h1 class="text-gray-900 dark:text-white font-bold text-5xl lg:text-7xl xl:text-8xl tracking-tight leading-tight">
+      {{ currentSongState?.song?.title || 'Waiting for Song...' }}
+    </h1>
 
-      <!-- Current Key Banner -->
-      <div class="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-700 dark:to-purple-800 p-6 rounded-xl shadow-lg text-center mb-6">
-        <h3 class="text-lg font-semibold text-white mb-2">Current Key</h3>
-        <div class="text-6xl md:text-8xl font-bold text-white">
-          {{ currentSongState?.currentKey || 'C' }}
-        </div>
-      </div>
+    <!-- Next Song Preview -->
+    <div *ngIf="nextSong" class="flex items-center gap-3 px-6 py-3 bg-gray-100 dark:bg-gray-800/60 rounded-full border border-gray-200 dark:border-gray-700/50">
+      <span class="text-gray-400 dark:text-gray-500 text-xs lg:text-sm font-medium tracking-widest uppercase">Next</span>
+      <span class="text-gray-600 dark:text-gray-300 text-sm lg:text-lg font-semibold">{{ nextSong.title }}</span>
+      <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full">
+        {{ nextSong.keys[0] }}
+      </span>
+    </div>
 
-      <!-- Song Structure -->
-      <div>
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">Song Structure</h3>
-        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-xl">
-          <div *ngIf="currentSongState?.song?.structure; else noStructure" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div
-              *ngFor="let section of currentSongState?.song?.structure"
-              class="py-3 px-4 rounded-lg text-center text-lg"
-              [ngClass]="currentSongState && section === currentSongState.currentSection ?
-                'bg-blue-500 text-white font-bold shadow-lg' :
-                'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200'"
-            >
-              {{ section }}
-            </div>
-          </div>
-          <ng-template #noStructure>
-            <p class="text-gray-500 dark:text-gray-400 text-center py-4">
-              No song structure available
-            </p>
-          </ng-template>
-        </div>
-      </div>
-    </section>
-
-    <!-- Right Column -->
-    <div class="flex flex-col gap-6">
-      <!-- Next Song -->
-      <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
-          <span class="material-icons mr-2">queue_music</span>
-          Next Song
-        </h3>
-        <div *ngIf="nextSong; else noNextSong" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
-          <p class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ nextSong.title }}</p>
-          <div class="flex flex-wrap gap-2 mt-2">
-          <div class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-sm">
-            {{ nextSong.keys[0] }}
-          </div>
-          </div>
-        </div>
-        <ng-template #noNextSong>
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl text-center">
-            <p class="text-gray-500 dark:text-gray-400">No next song in queue</p>
-          </div>
-        </ng-template>
-      </section>
-
-      <!-- Latest Commands -->
-      <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex-grow">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
-          <span class="material-icons mr-2">notifications_active</span>
-          Latest Commands
-        </h3>
-        <div *ngIf="messages.length > 0; else noMessages" class="space-y-3">
-          <div
-            *ngFor="let message of messages.slice(0, 5)"
-            class="p-4 rounded-xl"
-            [ngClass]="{
-              'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500': message.type === MessageType.KEY_CHANGE,
-              'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500': message.type === MessageType.TEMPO_CHANGE,
-              'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500': message.type === MessageType.MUSICAL_INSTRUCTION,
-              'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500': message.type === MessageType.CUSTOM_MESSAGE,
-              'bg-gray-50 dark:bg-gray-700 border-l-4 border-gray-500': message.type === MessageType.GENERAL_COMMUNICATION,
-              'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500': message.type === MessageType.SOUND_REQUEST
-            }"
+    <!-- Song Structure Navigation -->
+    <ng-container *ngIf="currentSongState?.song?.structure as structure">
+      <nav class="flex items-center justify-center gap-4 lg:gap-6 flex-wrap" *ngIf="structure.length > 0">
+        <ng-container *ngFor="let section of structure; let i = index">
+          <span 
+            class="font-semibold text-xl lg:text-2xl transition-all duration-200"
+            [ngClass]="currentSongState && section === currentSongState.currentSection ? 
+              'text-gray-900 dark:text-white scale-110' : 
+              'text-gray-400 dark:text-gray-500'"
           >
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="font-bold text-lg text-gray-800 dark:text-gray-200">
-                  {{ message.type === MessageType.MUSICAL_INSTRUCTION ? message.content.instruction :
-                     message.type === MessageType.KEY_CHANGE ? 'Key: ' + message.content.key :
-                     message.type === MessageType.TEMPO_CHANGE ? (message.content && message.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
-                     message.type === MessageType.CUSTOM_MESSAGE ? message.content.text :
-                     message.type === MessageType.GENERAL_COMMUNICATION ? message.content.text :
-                     message.type === MessageType.SOUND_REQUEST ? message.content.request :
-                     message.type === MessageType.ACKNOWLEDGMENT ? message.content.text : 'Unknown message' }}
-                </p>
-                <div class="flex items-center mt-1">
-                  <span class="text-sm text-gray-500">
-                    {{ message.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
-                       message.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
-                  </span>
-                  <span class="mx-2 text-gray-400">•</span>
-                  <span class="text-sm text-gray-500">{{ message.timestamp | date:'shortTime' }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            {{ section }}
+          </span>
+          <span 
+            *ngIf="i < structure.length - 1" 
+            class="text-gray-400 dark:text-gray-600 text-xl"
+          >
+            •
+          </span>
+        </ng-container>
+      </nav>
+    </ng-container>
+
+    <!-- Chord Progression Display (Placeholder for future implementation) -->
+    <div class="w-full pt-8 lg:pt-12 flex justify-center opacity-30 dark:opacity-20">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 w-full max-w-5xl">
+        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
+          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 32</span>
+          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">IV</span>
         </div>
-        <ng-template #noMessages>
-          <div class="p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <span class="material-icons text-4xl mb-2">notifications_none</span>
-            <p>No commands received yet</p>
-          </div>
-        </ng-template>
-      </section>
+        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
+          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 33</span>
+          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">I</span>
+        </div>
+        <div class="h-32 lg:h-40 border-2 border-indigo-500/40 dark:border-indigo-400/40 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center">
+          <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 34</span>
+          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">V</span>
+        </div>
+        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
+          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 35</span>
+          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">VI</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Notification Bar (Latest Message) -->
+  <div 
+    *ngIf="messages.length > 0" 
+    class="fixed bottom-8 lg:bottom-12 left-1/2 -translate-x-1/2 w-full max-w-md lg:max-w-lg px-6 z-[100]"
+  >
+    <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl p-4 lg:p-5 flex items-center gap-4 shadow-2xl border border-gray-200 dark:border-gray-700">
+      <div class="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-xl flex items-center justify-center flex-shrink-0">
+        <span class="material-icons text-indigo-600 dark:text-indigo-400">spatial_audio_off</span>
+      </div>
+      <div class="flex flex-col text-left flex-grow min-w-0">
+        <span class="text-gray-900 dark:text-white font-semibold text-base lg:text-lg truncate">
+          {{ messages[0].type === MessageType.MUSICAL_INSTRUCTION ? messages[0].content.instruction :
+             messages[0].type === MessageType.KEY_CHANGE ? 'Key: ' + messages[0].content.key :
+             messages[0].type === MessageType.TEMPO_CHANGE ? (messages[0].content && messages[0].content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
+             messages[0].type === MessageType.CUSTOM_MESSAGE ? messages[0].content.text :
+             messages[0].type === MessageType.GENERAL_COMMUNICATION ? messages[0].content.text :
+             messages[0].type === MessageType.SOUND_REQUEST ? messages[0].content.request : 'Message' }}
+        </span>
+        <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase">
+          {{ messages[0].sender === RecipientRole.SONG_LEADER ? 'From Song Leader' :
+             messages[0].sender === RecipientRole.SOUND_TEAM ? 'From Sound Team' : 'Direct Message' }}
+        </span>
+      </div>
     </div>
   </div>
 
   <!-- Offline Status -->
-  <div *ngIf="isOffline" class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
-    <span class="material-icons mr-2">wifi_off</span>
-    Offline Mode - Showing Last Known State
+  <div *ngIf="isOffline" class="fixed top-20 right-6 bg-red-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 z-50">
+    <span class="material-icons text-[20px]">wifi_off</span>
+    <span class="text-sm font-semibold">Offline</span>
   </div>
-</div>
 </div>
