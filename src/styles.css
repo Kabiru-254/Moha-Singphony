@@ -1,38 +1,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Kumbh+Sans:wght@100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --surface: #ffffff;
-  /* Slightly colorful, soft light background */
-  --surface-muted: #f3f8ff; /* very light blue tint */
-  --text: #0f172a; /* slightly richer than #111827 */
-  --text-muted: #546074; /* cooler muted tone */
+  --surface-muted: #eef4ff;
+  --text: #0f172a;
+  --text-muted: #546074;
   --primary: #0f172a;
-  --ring: #3b82f6; /* blue-500 for a more vibrant focus */
-  --dark-surface: #0f172a; /* slate-900 */
-  --dark-surface-muted: #111827; /* gray-900 */
-  --dark-text: #e5e7eb; /* gray-200 */
-  --dark-text-muted: #9ca3af; /* gray-400 */
+  --ring: #3b82f6;
+  --dark-surface: #0f172a;
+  --dark-surface-muted: #111827;
+  --dark-text: #e5e7eb;
+  --dark-text-muted: #9ca3af;
 }
 
-html, body { height: 100%; }
-body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--text); background: linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 35%, transparent 75%), var(--surface-muted); }
+html,
+body {
+  height: 100%;
+}
 
-/* Dark mode body baseline for consistency */
-.dark body { color: var(--dark-text); background: linear-gradient(180deg, rgba(59,130,246,0.04) 0%, rgba(59,130,246,0.015) 35%, transparent 75%), var(--dark-surface); }
+body {
+  margin: 0;
+  font-family: 'Inter', Roboto, system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  background: linear-gradient(
+      180deg,
+      rgba(59, 130, 246, 0.08) 0%,
+      rgba(59, 130, 246, 0.03) 35%,
+      transparent 75%
+    ),
+    var(--surface-muted);
+}
 
-/* Ensure Material Icons always render correctly despite component-scoped font overrides */
+.dark body {
+  color: var(--dark-text);
+  background: linear-gradient(
+      180deg,
+      rgba(59, 130, 246, 0.04) 0%,
+      rgba(59, 130, 246, 0.015) 35%,
+      transparent 75%
+    ),
+    var(--dark-surface);
+}
+
 .material-icons,
 .material-icons-outlined,
 .material-icons-round,
 .material-icons-sharp,
 .material-icons-two-tone {
-  font-family: 'Material Icons', 'Material Icons Outlined', 'Material Icons Round', 'Material Icons Sharp', 'Material Icons Two Tone' !important;
+  font-family: 'Material Icons', 'Material Icons Outlined', 'Material Icons Round',
+    'Material Icons Sharp', 'Material Icons Two Tone' !important;
   font-weight: normal;
   font-style: normal;
-  font-size: 20px; /* default size for alignment */
+  font-size: 20px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -44,27 +67,60 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
   -webkit-font-smoothing: antialiased;
 }
 
-/* Minimal, elegant base styles */
 @layer base {
-  h1 { @apply text-3xl md:text-4xl font-semibold text-gray-900 dark:text-gray-100; }
-  h2 { @apply text-2xl font-semibold text-gray-900 dark:text-gray-100; }
-  h3 { @apply text-xl font-medium text-gray-800 dark:text-gray-200; }
-  p, label, span { @apply text-gray-700 dark:text-gray-300; }
+  h1 {
+    @apply text-3xl font-semibold text-gray-900 md:text-4xl dark:text-gray-100;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold text-gray-900 dark:text-gray-100;
+  }
+
+  h3 {
+    @apply text-xl font-medium text-gray-800 dark:text-gray-200;
+  }
+
+  p,
+  label,
+  span {
+    @apply text-gray-700 dark:text-gray-300;
+  }
 }
 
-/* Reusable components */
 @layer components {
-  .card { @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-indigo-100/60 dark:border-gray-700/50; }
-  .card-muted { @apply bg-indigo-50 dark:bg-gray-900 rounded-xl border border-indigo-100/60 dark:border-gray-700/50; }
-  .btn { @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900; }
-  .btn-ghost { @apply btn bg-blue-50 hover:bg-blue-100 text-blue-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 focus:ring-blue-500; }
-  .btn-primary { @apply btn bg-gray-900 text-white hover:bg-black focus:ring-blue-500; }
-  .input { @apply w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent; }
-  .chip { @apply inline-flex items-center px-2 py-1 rounded-lg text-xs bg-blue-50 text-blue-700 dark:bg-gray-700 dark:text-gray-200; }
+  .card {
+    @apply rounded-2xl border border-indigo-100/60 bg-white shadow-lg dark:border-gray-700/50 dark:bg-gray-800;
+  }
+
+  .card-muted {
+    @apply rounded-xl border border-indigo-100/60 bg-indigo-50 dark:border-gray-700/50 dark:bg-gray-900;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900;
+  }
+
+  .btn-ghost {
+    @apply btn bg-blue-50 text-blue-900 hover:bg-blue-100 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+  }
+
+  .btn-primary {
+    @apply btn bg-gray-900 text-white hover:bg-black focus:ring-blue-500;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700 dark:bg-gray-700 dark:text-gray-200;
+  }
 }
 
-/* Custom Switch */
-.switch input { display: none; }
+.switch input {
+  display: none;
+}
+
 .switch .slider {
   width: 40px;
   height: 20px;
@@ -73,7 +129,8 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
   position: relative;
   transition: background 0.3s;
 }
-.switch .slider:before {
+
+.switch .slider::before {
   content: '';
   position: absolute;
   top: 2px;
@@ -83,30 +140,13 @@ body { margin: 0; font-family: 'Inter', Roboto, system-ui, -apple-system, "Helve
   background: white;
   border-radius: 50%;
   transition: all 0.3s;
-  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
-}
-.switch input:checked + .slider { background: #111827; }
-.switch input:checked + .slider:before { transform: translateX(20px); }
-
-
-
-/* Corrected root variables for light mode vibrancy */
-:root {
-  --surface: #ffffff;
-  --surface-muted: #f3f8ff; /* very light blue tint */
-  --text: #0f172a;
-  --text-muted: #546074;
-  --primary: #0f172a;
-  --ring: #3b82f6;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 
+.switch input:checked + .slider {
+  background: #111827;
+}
 
-/* Variable overrides applied to html to avoid ::root issue */
-html {
-  --surface: #ffffff;
-  --surface-muted: #eef4ff; /* slightly stronger light blue tint */
-  --text: #0f172a;
-  --text-muted: #546074;
-  --primary: #0f172a;
-  --ring: #3b82f6;
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
 }
