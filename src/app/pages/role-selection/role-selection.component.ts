@@ -10,11 +10,20 @@ import { CommonModule } from '@angular/common';
   styleUrl: './role-selection.component.css'
 })
 export class RoleSelectionComponent implements OnInit {
+  isDarkMode = true;
+
   constructor(private router: Router) {}
 
-  ngOnInit(): void {}
-
-  isDarkMode = document.documentElement.classList.contains('dark');
+  ngOnInit(): void {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      this.isDarkMode = false;
+      document.documentElement.classList.remove('dark');
+    } else {
+      this.isDarkMode = true;
+      document.documentElement.classList.add('dark');
+    }
+  }
 
   toggleTheme() {
     this.isDarkMode = !this.isDarkMode;

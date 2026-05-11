@@ -1,22 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;700&family=Nunito:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
-/* Scope font to the section to avoid overriding Material Icons ligature font */
-#roleSelectionSection {
-  font-family: 'Nunito', sans-serif;
+/* Background image for landing container */
+.landing-container {
+  position: relative;
 }
 
-.selection-card {
-  width: 100%;
-  max-width: none;
-  height: auto;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.font-jost {
-  font-family: 'Jost', sans-serif;
-}
-
-.selection-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.12);
+.landing-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/assets/worship_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.15;
+  filter: blur(2px);
+  z-index: 0;
 }

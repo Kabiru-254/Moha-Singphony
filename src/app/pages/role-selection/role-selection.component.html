@@ -1,110 +1,120 @@
-<section id="roleSelectionSection" class="min-h-screen py-16 px-4 md:px-12">
-  <div class="max-w-7xl mx-auto">
-    <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800 dark:text-white">Select Your Role</h1>
+<div class="landing-container min-h-screen bg-[#f8f9fa] dark:bg-[#0a0e1a] bg-cover bg-center bg-fixed relative text-[#1a1d29] dark:text-white font-['Outfit']">
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-gradient-to-b from-[#f8f9fa]/97 via-[#f8f9fa]/92 to-[#f8f9fa]/95 z-[1]
+              dark:from-[#0a0e1a]/95 dark:via-[#0a0e1a]/88 dark:to-[#0a0e1a]/92"></div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <!-- Card 1: Song Leader -->
-      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-blue-500" (click)="selectRole(getRoleByName('Song Leader'))">
-        <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-full mb-4">
-          <img src="assets/mic.svg" class="w-16 h-16">
-        </div>
-        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎤 Song Leader</h3>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.devices }}</p>
-        </div>
-        <div class="space-y-2 w-full mb-4">
-          <div class="flex items-start">
-            <span class="material-icons text-green-500 mr-2">send</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.canSendTo }}</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <span class="material-icons text-blue-500 mr-2">inbox</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.canReceiveFrom }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Song Leader')?.description }}</p>
-        </div>
-      </div>
-
-      <!-- Card 2: Sound Team -->
-      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-orange-500" (click)="selectRole(getRoleByName('Sound Team'))">
-        <div class="bg-orange-100 dark:bg-orange-900 p-4 rounded-full mb-4">
-          <img src="assets/mixer.svg" class="w-16 h-16">
-        </div>
-        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎧 Sound Team</h3>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.devices }}</p>
-        </div>
-        <div class="space-y-2 w-full mb-4">
-          <div class="flex items-start">
-            <span class="material-icons text-green-500 mr-2">send</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.canSendTo }}</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <span class="material-icons text-blue-500 mr-2">inbox</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.canReceiveFrom }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-lg w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Sound Team')?.description }}</p>
-        </div>
-      </div>
-
-      <!-- Card 3: Musicians -->
-      <div class="selection-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow transform hover:scale-105 duration-300 border-t-4 border-green-500" (click)="selectRole(getRoleByName('Musicians'))">
-        <div class="bg-green-100 dark:bg-green-900 p-4 rounded-full mb-4">
-          <img src="assets/keys.svg" class="w-16 h-16">
-        </div>
-        <h3 class="font-jost text-2xl font-bold mb-2 text-gray-800 dark:text-white">🎹 Musicians</h3>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4 w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devices:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.devices }}</p>
-        </div>
-        <div class="space-y-2 w-full mb-4">
-          <div class="flex items-start">
-            <span class="material-icons text-green-500 mr-2">send</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Send To:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.canSendTo }}</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <span class="material-icons text-blue-500 mr-2">inbox</span>
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Can Receive From:</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.canReceiveFrom }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-green-50 dark:bg-green-900/30 p-3 rounded-lg w-full">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Abilities:</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ getRoleByName('Musicians')?.description }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="mt-12 text-center">
-      <button class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg flex items-center mx-auto" (click)="toggleTheme()">
-        <span class="material-icons mr-2">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</span>
-        Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+  <!-- Header -->
+  <header class="sticky top-0 z-[100] px-6 py-5 backdrop-blur-[10px] bg-[#f8f9fa]/80 dark:bg-[#0a0e1a]/60 border-b border-black/5 dark:border-white/5
+                 md:px-8 md:py-6 lg:px-12">
+    <div class="max-w-[1400px] mx-auto flex justify-between items-center relative z-[2]">
+      <h1 class="text-xl font-bold tracking-tight m-0 text-[#1a1d29] dark:text-white">MOHA SINGPHONY</h1>
+      <button (click)="toggleTheme()" 
+              class="bg-transparent border border-black/15 dark:border-white/15 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-all duration-200 text-[#1a1d29] dark:text-white
+                     hover:bg-black/5 hover:border-black/25 dark:hover:bg-white/10 dark:hover:border-white/25"
+              aria-label="Toggle theme">
+        <svg *ngIf="!isDarkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg *ngIf="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
     </div>
-  </div>
-</section>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="py-16 px-6 text-center relative z-[2]
+                  md:py-20 md:px-8
+                  lg:py-24 lg:px-12">
+    <div class="max-w-[800px] mx-auto">
+      <h2 class="text-5xl font-semibold tracking-tight m-0 mb-3 text-[#1a1d29] dark:text-white leading-[1.1]
+                 md:text-6xl
+                 lg:text-7xl
+                 xl:text-8xl">MOHA SINGPHONY</h2>
+      <p class="text-lg font-normal text-[#1a1d29]/65 dark:text-white/70 m-0 tracking-wide
+                md:text-xl">Real-time worship communication</p>
+    </div>
+  </section>
+
+  <!-- Role Cards Section -->
+  <section class="py-8 px-6 pb-16 relative z-[2]
+                  md:py-12 md:px-8 md:pb-20
+                  lg:py-16 lg:px-12 lg:pb-24">
+    <div class="max-w-[1200px] mx-auto grid grid-cols-1 gap-6
+                md:grid-cols-2 md:gap-8
+                lg:grid-cols-3 lg:gap-8
+                xl:gap-10">
+      
+      <!-- Song Leader Card -->
+      <div (click)="selectRole(getRoleByName('Song Leader'))"
+           class="group bg-white/90 dark:bg-[#1e2332]/60 backdrop-blur-[20px] rounded-2xl p-8 cursor-pointer transition-all duration-300 border border-black/8 dark:border-transparent border-l-4 border-l-blue-600 relative overflow-hidden
+                  hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]
+                  md:p-10">
+        <div class="w-16 h-16 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 flex items-center justify-center mb-6 transition-transform duration-300 text-blue-600
+                    group-hover:scale-105">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-semibold m-0 mb-4 tracking-tight text-indigo-600 dark:text-indigo-300">Song Leader</h3>
+        <p class="text-[15px] leading-relaxed text-[#1a1d29]/70 dark:text-white/75 m-0 mb-6">Lead the song, set the key, send the cues. Coordinate with precision in real-time.</p>
+        <button class="bg-indigo-500/10 dark:bg-indigo-500/15 border-none text-indigo-600 dark:text-indigo-300 text-sm font-semibold tracking-wider py-3 px-6 rounded-lg cursor-pointer transition-all duration-200 uppercase w-full max-w-[200px]
+                       hover:bg-indigo-500/20 dark:hover:bg-indigo-500/25">ENTER ROLE</button>
+      </div>
+
+      <!-- Sound Team Card -->
+      <div (click)="selectRole(getRoleByName('Sound Team'))"
+           class="group bg-white/90 dark:bg-[#1e2332]/60 backdrop-blur-[20px] rounded-2xl p-8 cursor-pointer transition-all duration-300 border border-black/8 dark:border-transparent border-l-4 border-l-amber-500 relative overflow-hidden
+                  hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]
+                  md:p-10">
+        <div class="w-16 h-16 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-center mb-6 transition-transform duration-300 text-amber-500
+                    group-hover:scale-105">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-semibold m-0 mb-4 tracking-tight text-amber-600 dark:text-amber-300">Sound Team</h3>
+        <p class="text-[15px] leading-relaxed text-[#1a1d29]/70 dark:text-white/75 m-0 mb-6">Manage requests, keep the mix tight. Monitor every input and communicate with the stage.</p>
+        <button class="bg-amber-500/10 dark:bg-amber-500/15 border-none text-amber-600 dark:text-amber-300 text-sm font-semibold tracking-wider py-3 px-6 rounded-lg cursor-pointer transition-all duration-200 uppercase w-full max-w-[200px]
+                       hover:bg-amber-500/20 dark:hover:bg-amber-500/25">ENTER ROLE</button>
+      </div>
+
+      <!-- Musicians Card -->
+      <div (click)="selectRole(getRoleByName('Musicians'))"
+           class="group bg-white/90 dark:bg-[#1e2332]/60 backdrop-blur-[20px] rounded-2xl p-8 cursor-pointer transition-all duration-300 border border-black/8 dark:border-transparent border-l-4 border-l-emerald-500 relative overflow-hidden
+                  hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]
+                  md:p-10">
+        <div class="w-16 h-16 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 flex items-center justify-center mb-6 transition-transform duration-300 text-emerald-500
+                    group-hover:scale-105">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M6 8h.01"/>
+            <path d="M10 8h.01"/>
+            <path d="M14 8h.01"/>
+            <path d="M18 8h.01"/>
+            <path d="M8 12h.01"/>
+            <path d="M12 12h.01"/>
+            <path d="M16 12h.01"/>
+            <path d="M7 16h10"/>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-semibold m-0 mb-4 tracking-tight text-emerald-600 dark:text-emerald-300">Musicians</h3>
+        <p class="text-[15px] leading-relaxed text-[#1a1d29]/70 dark:text-white/75 m-0 mb-6">Stay locked in. Everything you need, right here. Chord charts and cues at your fingertips.</p>
+        <button class="bg-emerald-500/10 dark:bg-emerald-500/15 border-none text-emerald-600 dark:text-emerald-300 text-sm font-semibold tracking-wider py-3 px-6 rounded-lg cursor-pointer transition-all duration-200 uppercase w-full max-w-[200px]
+                       hover:bg-emerald-500/20 dark:hover:bg-emerald-500/25">ENTER ROLE</button>
+      </div>
+    </div>
+  </section>
+</div>
