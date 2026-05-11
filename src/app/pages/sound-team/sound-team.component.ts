@@ -97,7 +97,7 @@ export class SoundTeamComponent implements OnInit, OnDestroy {
       sender: RecipientRole.SOUND_TEAM,
       recipients: [RecipientRole.SONG_LEADER, RecipientRole.MUSICIAN]
     });
-    this.notificationService.showNotification(`Sent: ${reply}`, 'success');
+    this.notificationService.showNotification(`Sent: ${reply}`, 'resolved');
   }
 
   toggleSoundReady() {
@@ -110,7 +110,7 @@ export class SoundTeamComponent implements OnInit, OnDestroy {
     });
     this.notificationService.showNotification(
       this.soundReady ? 'Sound Ready status sent' : 'Sound Not Ready status sent',
-      this.soundReady ? 'success' : 'warning'
+      this.soundReady ? 'resolved' : 'info'
     );
   }
 
@@ -123,7 +123,7 @@ export class SoundTeamComponent implements OnInit, OnDestroy {
         recipients: this.selectedRecipients
       });
 
-      this.notificationService.showNotification('Message sent', 'success');
+      this.notificationService.showNotification('Message sent', 'resolved');
       this.customMessage = '';
     }
   }

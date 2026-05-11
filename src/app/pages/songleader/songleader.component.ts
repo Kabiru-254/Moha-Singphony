@@ -272,7 +272,7 @@ export class SongleaderComponent implements OnInit, OnDestroy {
   // Setlist management methods
   addToSetlist(songId: number) {
     this.songService.addToActiveSetlist(songId);
-    this.notificationService.showNotification('Song added to setlist', 'success');
+    this.notificationService.showNotification('Song added to setlist', 'resolved');
   }
 
   removeFromSetlist(songId: number) {
@@ -300,13 +300,13 @@ export class SongleaderComponent implements OnInit, OnDestroy {
       sender: RecipientRole.SONG_LEADER,
       recipients: [RecipientRole.MUSICIAN, RecipientRole.SOUND_TEAM]
     });
-    this.notificationService.showNotification(`Broadcasting: ${song.title}`, 'success');
+    this.notificationService.showNotification(`Broadcasting: ${song.title}`, 'cue');
   }
 
   broadcastSetlist() {
     if (this.currentSetlist) {
       this.songService.setBroadcastSetlist(this.currentSetlist.id);
-      this.notificationService.showNotification('Setlist broadcasted to team', 'success');
+      this.notificationService.showNotification('Setlist broadcasted to team', 'cue');
     }
   }
 
@@ -341,9 +341,9 @@ export class SongleaderComponent implements OnInit, OnDestroy {
       // Immediately add to today's setlist
       if (created && created.id != null) {
         this.songService.addToActiveSetlist(created.id);
-        this.notificationService.showNotification('Song created and added to setlist', 'success');
+        this.notificationService.showNotification('Song created and added to setlist', 'resolved');
       } else {
-        this.notificationService.showNotification('Song created successfully', 'success');
+        this.notificationService.showNotification('Song created successfully', 'resolved');
       }
 
       this.closeSongSetupModal();
