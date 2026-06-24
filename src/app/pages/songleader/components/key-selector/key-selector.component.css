@@ -1,0 +1,29 @@
+.key-selector {
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+  box-shadow: var(--ms-shadow-md);
+}
+
+.key-btn {
+  background: var(--ms-card-hover);
+  color: var(--ms-text-secondary);
+  border: 1px solid transparent;
+}
+
+.key-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--ms-primary);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.key-btn.selected {
+  background: linear-gradient(135deg, var(--ms-primary), var(--ms-secondary));
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--ms-shadow-glow);
+  transform: scale(1.05);
+}
+
+.key-btn.selected:hover {
+  color: white;
+}

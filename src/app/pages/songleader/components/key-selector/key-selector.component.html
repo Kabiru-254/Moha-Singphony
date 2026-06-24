@@ -1,0 +1,27 @@
+<div
+  class="key-selector rounded-[24px] border p-4"
+  [class.p-3]="compact()"
+  [attr.aria-label]="'Key selector, currently ' + selectedKey()"
+  role="radiogroup"
+>
+  <div
+    class="grid gap-2"
+    [class.grid-cols-6]="compact()"
+    [class.grid-cols-4]="!compact()"
+    [class.sm:grid-cols-6]="!compact()"
+    [class.md:grid-cols-12]="!compact()"
+  >
+    <button
+      *ngFor="let key of keys()"
+      type="button"
+      role="radio"
+      [attr.aria-checked]="selectedKey() === key"
+      class="key-btn flex aspect-square items-center justify-center rounded-[16px] text-lg font-bold transition-all duration-[200ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-ms-primary/30"
+      [class.selected]="selectedKey() === key"
+      [attr.aria-label]="'Select key ' + key"
+      (click)="onSelect(key)"
+    >
+      {{ key }}
+    </button>
+  </div>
+</div>
