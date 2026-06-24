@@ -1,0 +1,42 @@
+<div class="rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-5 shadow-[var(--ms-shadow-md)]">
+  <div class="mb-5 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="material-icons text-[18px] text-[var(--ms-text-secondary)]">warning</span>
+      <h3 class="text-[14px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Active Issues</h3>
+    </div>
+    <span
+      *ngIf="activeCount() > 0"
+      class="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--ms-danger)] px-1.5 text-[11px] font-bold text-white"
+    >
+      {{ activeCount() }}
+    </span>
+  </div>
+
+  <div class="space-y-3">
+    <div
+      *ngFor="let issue of activeIssues()"
+      class="flex items-start justify-between gap-3 rounded-[16px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] p-3"
+    >
+      <div class="flex items-start gap-3">
+        <span class="material-icons text-[20px]" [style.color]="severityColor(issue.severity)">error</span>
+        <div>
+          <div class="text-[14px] font-semibold text-[var(--ms-text)]">{{ issue.title }}</div>
+          <div class="text-[11px] text-[var(--ms-text-muted)]">{{ issue.timestamp | date:'shortTime' }} · {{ issue.severity }}</div>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="resolveIssue.emit(issue.id)"
+        class="rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] px-3 py-1.5 text-[12px] font-medium text-[var(--ms-text-secondary)] transition-all hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+      >
+        Resolve
+      </button>
+    </div>
+
+    <div *ngIf="activeIssues().length === 0" class="rounded-[16px] border border-dashed border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] p-6 text-center">
+      <span class="material-icons mb-2 text-[32px] text-[var(--ms-success)]">check_circle</span>
+      <p class="text-[14px] font-medium text-[var(--ms-text)]">No active issues</p>
+      <p class="text-[12px] text-[var(--ms-text-muted)]">Everything is running smoothly</p>
+    </div>
+  </div>
+</div>

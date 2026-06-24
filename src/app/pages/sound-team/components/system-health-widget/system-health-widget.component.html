@@ -1,0 +1,30 @@
+<div class="rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-5 shadow-[var(--ms-shadow-md)]">
+  <div class="mb-5 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-[var(--ms-text-secondary)]">monitor_heart</span>
+    <h3 class="text-[14px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">System Health</h3>
+  </div>
+
+  <div class="space-y-3">
+    <div
+      *ngFor="let system of systems()"
+      class="flex items-center justify-between rounded-[16px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] p-3"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="flex h-9 w-9 items-center justify-center rounded-full"
+          [style.background-color]="statusBg(system.status)"
+        >
+          <span class="material-icons text-[18px]" [style.color]="statusColor(system.status)">{{ system.icon }}</span>
+        </div>
+        <span class="text-[14px] font-semibold text-[var(--ms-text)]">{{ system.name }}</span>
+      </div>
+      <span
+        class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+        [style.background-color]="statusBg(system.status)"
+        [style.color]="statusColor(system.status)"
+      >
+        {{ system.status }}
+      </span>
+    </div>
+  </div>
+</div>
