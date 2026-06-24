@@ -1,0 +1,95 @@
+<section class="rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-5 shadow-[var(--ms-shadow-md)] md:p-6">
+  <div class="mb-5 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-[var(--ms-text-secondary)]">chat</span>
+    <h3 class="text-[14px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Communication Hub</h3>
+  </div>
+
+  <!-- Recipients -->
+  <div class="mb-4">
+    <label class="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Recipients</label>
+    <div class="flex flex-wrap gap-2">
+      <button
+        *ngFor="let option of recipientOptions"
+        type="button"
+        (click)="toggleRecipient(option.role)"
+        class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition-all duration-200"
+        [class.selected]="draft().recipients.includes(option.role)"
+        [attr.aria-pressed]="draft().recipients.includes(option.role)"
+      >
+        <span class="material-icons text-[16px]">{{ option.icon }}</span>
+        {{ option.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Priority -->
+  <div class="mb-4">
+    <label class="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Priority</label>
+    <div class="flex flex-wrap gap-2">
+      <button
+        *ngFor="let option of priorityOptions"
+        type="button"
+        (click)="setPriority(option.value)"
+        class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition-all duration-200"
+        [class.selected]="draft().priority === option.value"
+        [attr.aria-pressed]="draft().priority === option.value"
+      >
+        <span class="h-2 w-2 rounded-full" [style.background-color]="option.color"></span>
+        {{ option.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Templates -->
+  <div class="mb-4 flex flex-wrap gap-2">
+    <button
+      *ngFor="let template of templates()"
+      type="button"
+      (click)="applyTemplate(template.text)"
+      class="rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] px-3 py-1.5 text-[12px] font-medium text-[var(--ms-text-secondary)] transition-all hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+    >
+      {{ template.label }}
+    </button>
+  </div>
+
+  <!-- Composer -->
+  <div class="relative overflow-hidden rounded-[20px] border border-[var(--ms-border)] bg-[var(--ms-bg)] transition-all duration-200 focus-within:border-[var(--ms-primary)] focus-within:shadow-[var(--ms-ring)]">
+    <textarea
+      [ngModel]="draft().text"
+      (ngModelChange)="onTextChange($event)"
+      (focus)="expanded.set(true)"
+      class="min-h-[96px] w-full resize-y bg-transparent px-4 py-3 text-[14px] text-[var(--ms-text)] placeholder:text-[var(--ms-text-muted)] outline-none"
+      [class.min-h-[140px]]="expanded()"
+      placeholder="Type your message..."
+      rows="3"
+      maxlength="280"
+    ></textarea>
+
+    <div class="flex items-center justify-between border-t border-[var(--ms-border-subtle)] px-4 py-2">
+      <div class="flex items-center gap-2 text-[12px] text-[var(--ms-text-muted)]">
+        <span class="material-icons text-[16px]">mic</span>
+        <span>Voice-to-text</span>
+      </div>
+      <div
+        class="text-[12px] font-medium"
+        [class.text-[var(--ms-text-muted]]="!isOverLimit()"
+        [class.text-[var(--ms-danger)]="isOverLimit()"
+      >
+        {{ characterCount() }}/{{ maxLength() }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Send button -->
+  <button
+    type="button"
+    (click)="onSend()"
+    class="send-btn mt-4 flex w-full items-center justify-center gap-2 rounded-[16px] bg-gradient-to-r from-[var(--ms-primary)] to-[var(--ms-secondary)] py-3.5 text-[15px] font-semibold text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]"
+    [class.opacity-60]="!canSend()"
+    [class.cursor-not-allowed]="!canSend()"
+    [disabled]="!canSend()"
+  >
+    <span class="material-icons text-[20px]">send</span>
+    Send Message
+  </button>
+</section>

@@ -1,0 +1,25 @@
+:host {
+  display: block;
+}
+
+button[aria-pressed="true"].selected {
+  border-color: var(--ms-primary);
+  background: color-mix(in srgb, var(--ms-primary) 12%, var(--ms-card));
+  color: var(--ms-primary);
+}
+
+button[aria-pressed="false"] {
+  border-color: var(--ms-border-subtle);
+  background: var(--ms-bg);
+  color: var(--ms-text-secondary);
+}
+
+button[aria-pressed="false"]:hover {
+  border-color: var(--ms-border);
+  background: var(--ms-card-hover);
+  color: var(--ms-text);
+}
+
+.send-btn:hover {
+  transform: translateY(-1px);
+}
