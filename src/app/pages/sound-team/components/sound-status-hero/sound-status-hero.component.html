@@ -1,0 +1,54 @@
+<div
+  class="relative overflow-hidden rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-6 shadow-[var(--ms-shadow-lg)] md:p-8"
+  [style.--hero-color]="statusConfig().color"
+  [style.--hero-bg]="statusConfig().bg"
+  [style.--hero-ring]="statusConfig().ring"
+>
+  <div class="absolute inset-0 bg-gradient-to-br from-[var(--hero-color)]/5 to-transparent pointer-events-none"></div>
+
+  <div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <!-- Left: status indicator -->
+    <div class="flex items-center gap-5">
+      <div
+        class="status-ring relative flex h-20 w-20 items-center justify-center rounded-full md:h-24 md:w-24"
+        [class.pulsing]="statusConfig().pulse"
+      >
+        <div class="absolute inset-0 rounded-full bg-[var(--hero-bg)]"></div>
+        <div class="absolute inset-2 rounded-full bg-[var(--ms-card)]"></div>
+        <span
+          class="material-icons relative z-10 text-[36px] md:text-[44px]"
+          [style.color]="statusConfig().color"
+        >
+          {{ statusConfig().icon }}
+        </span>
+      </div>
+
+      <div>
+        <div class="mb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Sound Status</div>
+        <h2 class="text-[28px] font-bold leading-tight text-[var(--ms-text)] md:text-[32px]">
+          {{ statusConfig().label }}
+        </h2>
+        <div class="mt-2 flex items-center gap-3 text-[13px] text-[var(--ms-text-muted)]">
+          <span class="flex items-center gap-1">
+            <span class="material-icons text-[16px]">schedule</span>
+            {{ lastUpdate() | date:'shortTime' }}
+          </span>
+          <span class="h-1 w-1 rounded-full bg-[var(--ms-text-muted)]"></span>
+          <span>{{ sessionName() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: connected stats -->
+    <div class="grid grid-cols-2 gap-3 md:gap-4">
+      <div class="rounded-[16px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)]/60 p-3 text-center backdrop-blur-sm md:p-4">
+        <div class="text-[24px] font-bold text-[var(--ms-text)]">{{ connectedDevices() }}</div>
+        <div class="text-[11px] font-medium uppercase tracking-wider text-[var(--ms-text-muted)]">Devices</div>
+      </div>
+      <div class="rounded-[16px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)]/60 p-3 text-center backdrop-blur-sm md:p-4">
+        <div class="text-[24px] font-bold text-[var(--ms-text)]">{{ connectedMusicians() }}</div>
+        <div class="text-[11px] font-medium uppercase tracking-wider text-[var(--ms-text-muted)]">Musicians</div>
+      </div>
+    </div>
+  </div>
+</div>
