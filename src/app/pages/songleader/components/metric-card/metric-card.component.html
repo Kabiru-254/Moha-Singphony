@@ -1,0 +1,59 @@
+<button
+  type="button"
+  class="group relative w-full text-left p-5 rounded-[20px] border transition-all duration-[250ms] ease-ms-ease focus:outline-none focus-visible:ring-2 focus-visible:ring-ms-primary/30"
+  [class.clickable-card]="clickable()"
+  [class.cursor-pointer]="clickable()"
+  [attr.aria-label]="label() + ': ' + value()"
+  (click)="onClick()"
+  [ngStyle]="{
+    'background': 'var(--ms-card)',
+    'border-color': 'var(--ms-border-subtle)',
+    'box-shadow': 'var(--ms-shadow-md)'
+  }"
+>
+  <div class="flex items-start justify-between mb-3">
+    <div
+      class="inline-flex h-11 w-11 items-center justify-center rounded-[14px] transition-transform duration-[250ms] group-hover:scale-110"
+      [ngClass]="{
+        'bg-ms-primary/12 text-ms-primary': accent() === 'primary',
+        'bg-ms-secondary/12 text-ms-secondary': accent() === 'secondary',
+        'bg-ms-success/12 text-ms-success': accent() === 'success',
+        'bg-ms-warning/12 text-ms-warning': accent() === 'warning',
+        'bg-ms-danger/12 text-ms-danger': accent() === 'danger',
+        'bg-ms-info/12 text-ms-info': accent() === 'info'
+      }"
+    >
+      <span class="material-icons text-[22px]">{{ icon() }}</span>
+    </div>
+    <div
+      *ngIf="trend() !== 'neutral' && trendValue()"
+      class="flex items-center gap-1 text-xs font-semibold"
+      [ngClass]="{
+        'text-ms-success': trend() === 'up',
+        'text-ms-danger': trend() === 'down'
+      }"
+    >
+      <span class="material-icons text-[16px]">
+        {{ trend() === 'up' ? 'trending_up' : 'trending_down' }}
+      </span>
+      {{ trendValue() }}
+    </div>
+  </div>
+
+  <div class="space-y-1">
+    <p class="text-[13px] font-medium text-[var(--ms-text-muted)]">{{ label() }}</p>
+    <p class="text-[28px] font-bold tracking-tight text-[var(--ms-text)]">{{ value() }}</p>
+  </div>
+
+  <div
+    class="absolute inset-x-0 bottom-0 h-1 opacity-0 transition-opacity duration-[250ms] group-hover:opacity-100"
+    [ngClass]="{
+      'bg-ms-primary': accent() === 'primary',
+      'bg-ms-secondary': accent() === 'secondary',
+      'bg-ms-success': accent() === 'success',
+      'bg-ms-warning': accent() === 'warning',
+      'bg-ms-danger': accent() === 'danger',
+      'bg-ms-info': accent() === 'info'
+    }"
+  ></div>
+</button>

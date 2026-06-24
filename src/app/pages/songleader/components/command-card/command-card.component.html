@@ -1,0 +1,32 @@
+<button
+  type="button"
+  class="command-card relative flex items-center justify-center gap-2 rounded-[16px] border font-semibold transition-all duration-[200ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-ms-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+  [class.animate-ms-broadcast]="broadcasting()"
+  [ngClass]="{
+    'h-14 px-4 text-sm': size() === 'sm',
+    'h-20 px-4 text-sm': size() === 'md',
+    'h-24 px-5 text-base': size() === 'lg',
+    'bg-ms-primary text-white border-transparent shadow-[0_4px_14px_rgba(99,102,241,0.32)] hover:bg-ms-primary-light hover:shadow-[0_6px_18px_rgba(99,102,241,0.42)]': variant() === 'primary' && !active() && !disabled(),
+    'bg-ms-secondary text-white border-transparent shadow-[0_4px_14px_rgba(139,92,246,0.32)] hover:bg-ms-secondary-light hover:shadow-[0_6px_18px_rgba(139,92,246,0.42)]': variant() === 'secondary' && !active() && !disabled(),
+    'bg-ms-success text-white border-transparent shadow-[0_4px_14px_rgba(34,197,94,0.32)] hover:bg-ms-success-light hover:shadow-[0_6px_18px_rgba(34,197,94,0.42)]': variant() === 'success' && !active() && !disabled(),
+    'bg-ms-warning text-white border-transparent shadow-[0_4px_14px_rgba(245,158,11,0.32)] hover:bg-ms-warning-light hover:shadow-[0_6px_18px_rgba(245,158,11,0.42)]': variant() === 'warning' && !active() && !disabled(),
+    'bg-ms-danger text-white border-transparent shadow-[0_4px_14px_rgba(239,68,68,0.32)] hover:bg-ms-danger-light hover:shadow-[0_6px_18px_rgba(239,68,68,0.42)]': variant() === 'danger' && !active() && !disabled(),
+    'bg-ms-info text-white border-transparent shadow-[0_4px_14px_rgba(59,130,246,0.32)] hover:bg-ms-info-light hover:shadow-[0_6px_18px_rgba(59,130,246,0.42)]': variant() === 'info' && !active() && !disabled(),
+    'bg-[var(--ms-card)] text-[var(--ms-text)] border-[var(--ms-border-subtle)] hover:bg-[var(--ms-card-hover)] hover:shadow-[var(--ms-shadow-lg)]': variant() === 'ghost' && !active() && !disabled(),
+    'ring-2 ring-white/40 scale-[0.98]': active()
+  }"
+  [disabled]="disabled()"
+  [attr.aria-label]="label()"
+  [attr.aria-pressed]="active()"
+  (click)="onClick()"
+>
+  <span class="material-icons" [class.text-[20px]]="size() === 'sm'" [class.text-[24px]]="size() !== 'sm'">
+    {{ icon() }}
+  </span>
+  <span class="truncate">{{ label() }}</span>
+
+  <span
+    *ngIf="active()"
+    class="absolute right-2 top-2 h-2 w-2 rounded-full bg-white/80"
+  ></span>
+</button>
