@@ -1,0 +1,49 @@
+<div class="ms-card p-5 md:p-6" aria-label="Session analytics">
+  <div class="mb-4 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-ms-info">insights</span>
+    <h3 class="text-[16px] font-semibold text-[var(--ms-text)]">Session Analytics</h3>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
+    <app-metric-card
+      label="Songs Played"
+      [value]="songsPlayed()"
+      icon="music_note"
+      accent="secondary"
+      trend="up"
+      trendValue="Live"
+    ></app-metric-card>
+    <app-metric-card
+      label="Avg Tempo"
+      [value]="averageTempo() + ' BPM'"
+      icon="speed"
+      accent="success"
+    ></app-metric-card>
+    <app-metric-card
+      label="Response Time"
+      [value]="responseTimeMs() + 'ms'"
+      icon="network_ping"
+      accent="info"
+    ></app-metric-card>
+    <app-metric-card
+      label="Musicians"
+      [value]="activeMusicians()"
+      icon="groups"
+      accent="primary"
+      trend="up"
+      trendValue="Online"
+    ></app-metric-card>
+    <app-metric-card
+      label="Broadcasts"
+      [value]="messagesSent()"
+      icon="cast"
+      accent="warning"
+    ></app-metric-card>
+    <app-metric-card
+      label="Songs Left"
+      [value]="songsRemaining()"
+      icon="queue_music"
+      accent="danger"
+    ></app-metric-card>
+  </div>
+</div>

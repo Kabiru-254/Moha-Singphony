@@ -1,0 +1,45 @@
+<div class="ms-card p-5" aria-label="Connected musicians">
+  <div class="mb-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="material-icons text-[18px] text-ms-success">groups</span>
+      <h3 class="text-[16px] font-semibold text-[var(--ms-text)]">Musicians</h3>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="relative flex h-2 w-2">
+        <span class="absolute inline-flex h-full w-full animate-ms-live-pulse rounded-full bg-ms-success opacity-75"></span>
+        <span class="relative inline-flex h-2 w-2 rounded-full bg-ms-success"></span>
+      </span>
+      <span class="text-[13px] font-semibold text-ms-success">{{ totalConnected() }} connected</span>
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    <div
+      *ngFor="let musician of musicians(); trackBy: trackByMusician"
+      class="flex items-center gap-3 rounded-[14px] border px-3 py-2.5 transition-colors hover:bg-[var(--ms-card-hover)]"
+      style="background: var(--ms-card); border-color: var(--ms-border-subtle);"
+    >
+      <div class="relative">
+        <div
+          class="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold text-white"
+          [style.background]="getAvatarGradient(musician.instrument)"
+        >
+          {{ getInitials(musician.name) }}
+        </div>
+        <span
+          class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2"
+          [class.bg-ms-success]="musician.online"
+          [class.bg-[var(--ms-border)]]="!musician.online"
+          [style.border-color]="'var(--ms-card)'"
+        ></span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-[14px] font-semibold text-[var(--ms-text)]">{{ musician.name }}</p>
+        <p class="truncate text-[12px] text-[var(--ms-text-muted)]">{{ musician.role }}</p>
+      </div>
+      <span class="rounded-[8px] bg-[var(--ms-card-hover)] px-2 py-1 text-[11px] font-medium text-[var(--ms-text-muted)]">
+        {{ musician.instrument }}
+      </span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+<div class="ms-card flex flex-col p-5" aria-label="Quick notes">
+  <div class="mb-3 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-ms-warning">sticky_note_2</span>
+    <h3 class="text-[16px] font-semibold text-[var(--ms-text)]">Quick Notes</h3>
+  </div>
+  <textarea
+    [value]="notes()"
+    placeholder="Temporary notes for this session..."
+    rows="4"
+    class="ms-input min-h-[100px] resize-none flex-1"
+    aria-label="Quick notes"
+    (input)="onInput($event)"
+  ></textarea>
+  <p class="mt-2 text-[11px] text-[var(--ms-text-muted)]">Notes are private to this device and clear on reload.</p>
+</div>

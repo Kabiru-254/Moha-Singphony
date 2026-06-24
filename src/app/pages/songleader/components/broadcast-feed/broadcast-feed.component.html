@@ -1,0 +1,35 @@
+<div class="ms-card p-5" aria-label="Broadcast activity feed">
+  <div class="mb-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="material-icons text-[18px] text-ms-primary">cast</span>
+      <h3 class="text-[16px] font-semibold text-[var(--ms-text)]">Broadcast Activity</h3>
+    </div>
+    <span class="text-[12px] font-medium text-[var(--ms-text-muted)]">{{ messages().length }} today</span>
+  </div>
+
+  <div class="max-h-[260px] space-y-2 overflow-y-auto pr-1">
+    <div
+      *ngFor="let message of messages(); trackBy: trackByMessage"
+      class="flex items-start gap-3 rounded-[14px] border p-3 transition-colors hover:bg-[var(--ms-card-hover)]"
+      style="background: var(--ms-card); border-color: var(--ms-border-subtle);"
+    >
+      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ms-card-hover)]">
+        <span class="material-icons text-[16px]" [ngClass]="getColor(message.type)">{{ getIcon(message.type) }}</span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-[13px] font-semibold text-[var(--ms-text)]">{{ getLabel(message) }}</p>
+        <p class="text-[11px] text-[var(--ms-text-muted)]">{{ message.timestamp | date:'shortTime' }}</p>
+      </div>
+      <span class="material-icons text-[16px] text-ms-success">check_circle</span>
+    </div>
+
+    <div
+      *ngIf="messages().length === 0"
+      class="flex flex-col items-center justify-center rounded-[14px] border py-6 text-center"
+      style="background: var(--ms-card-hover); border-color: var(--ms-border-subtle);"
+    >
+      <span class="material-icons mb-1 text-[20px] text-[var(--ms-text-muted)]">history</span>
+      <p class="text-[13px] text-[var(--ms-text-muted)]">No broadcasts yet</p>
+    </div>
+  </div>
+</div>
