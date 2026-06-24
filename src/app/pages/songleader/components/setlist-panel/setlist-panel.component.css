@@ -1,0 +1,23 @@
+.setlist-item {
+  display: block;
+  transition: transform 200ms ease;
+}
+
+.cdk-drag-preview app-song-card,
+.cdk-drag-preview .song-card {
+  box-shadow: var(--ms-shadow-xl) !important;
+  transform: rotate(2deg);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .setlist-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

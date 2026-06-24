@@ -1,0 +1,22 @@
+.song-card {
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+  box-shadow: var(--ms-shadow-sm);
+}
+
+.song-card:hover {
+  box-shadow: var(--ms-shadow-md);
+}
+
+.song-card[aria-current="true"] {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: var(--ms-shadow-glow);
+}
+
+.draggable {
+  cursor: grab;
+}
+
+.draggable:active {
+  cursor: grabbing;
+}

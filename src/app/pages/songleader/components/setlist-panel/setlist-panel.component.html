@@ -1,0 +1,121 @@
+<section class="ms-card flex flex-col p-5 md:p-6" aria-label="Setlist management">
+  <div class="mb-5 flex items-center justify-between">
+    <div>
+      <h2 class="text-[20px] font-semibold text-[var(--ms-text)]">Setlist</h2>
+      <p class="text-[13px] text-[var(--ms-text-muted)]">{{ songs().length }} songs for Sunday Service</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="ms-btn-ghost h-10 px-3"
+        aria-label="Broadcast setlist"
+        [disabled]="songs().length === 0"
+        (click)="broadcastSetlist.emit()"
+      >
+        <span class="material-icons text-[18px]">cast</span>
+        <span class="hidden sm:inline">Broadcast</span>
+      </button>
+      <button
+        type="button"
+        class="ms-btn-primary h-10 px-3"
+        aria-label="Add new song"
+        (click)="addNewSong.emit()"
+      >
+        <span class="material-icons text-[18px]">add</span>
+        <span class="hidden sm:inline">Add</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="relative mb-4">
+    <span class="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-[var(--ms-text-muted)]">search</span>
+    <input
+      type="text"
+      [value]="searchQuery()"
+      placeholder="Search songs or add to setlist..."
+      class="ms-input pl-11"
+      aria-label="Search songs"
+      (input)="onQueryInput($event)"
+    />
+    <button
+      *ngIf="searchQuery()"
+      type="button"
+      class="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ms-text-muted)] transition-colors hover:bg-[var(--ms-card-hover)]"
+      aria-label="Clear search"
+      (click)="queryChange.emit('')"
+    >
+      <span class="material-icons text-[16px]">close</span>
+    </button>
+  </div>
+
+  <!-- Search results -->
+  <div
+    *ngIf="filteredResults().length > 0"
+    class="mb-4 max-h-60 overflow-y-auto rounded-[16px] border p-2"
+    style="background: var(--ms-card); border-color: var(--ms-border-subtle);"
+  >
+    <div class="mb-2 px-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Search results</div>
+    <button
+      *ngFor="let song of filteredResults(); trackBy: trackBySongId"
+      type="button"
+      class="flex w-full items-center justify-between rounded-[12px] px-3 py-2 text-left transition-colors hover:bg-[var(--ms-card-hover)]"
+      (click)="onAddSong(song)"
+    >
+      <div class="flex items-center gap-3">
+        <span class="material-icons text-[18px] text-[var(--ms-text-muted)]">music_note</span>
+        <span class="text-[14px] font-medium text-[var(--ms-text)]">{{ song.title }}</span>
+        <span class="ms-badge-key text-[10px]">{{ song.keys[0] }}</span>
+      </div>
+      <span class="material-icons text-[18px] text-ms-primary">add</span>
+    </button>
+  </div>
+
+  <!-- Songs list -->
+  <div
+    cdkDropList
+    class="flex-1 space-y-3 overflow-y-auto pr-1"
+    [cdkDropListData]="songs()"
+    [cdkDropListDisabled]="searchQuery().length > 0"
+    (cdkDropListDropped)="onDrop($event)"
+  >
+    <div
+      *ngFor="let song of songs(); let i = index; trackBy: trackBySongId"
+      cdkDrag
+      class="setlist-item"
+      [cdkDragData]="song"
+      [cdkDragDisabled]="searchQuery().length > 0"
+    >
+      <app-song-card
+        [song]="song"
+        [status]="getStatus(song, i)"
+        [currentKey]="currentSongState()?.currentKey || ''"
+        [index]="i"
+        [draggable]="searchQuery().length === 0"
+        (selected)="selectSong.emit($event)"
+        (broadcast)="broadcastSong.emit($event)"
+        (remove)="removeSong.emit($event)"
+      ></app-song-card>
+      <div class="cdk-drag-preview" *cdkDragPreview>
+        <app-song-card
+          [song]="song"
+          [status]="getStatus(song, i)"
+          [currentKey]="currentSongState()?.currentKey || ''"
+          [index]="i"
+        ></app-song-card>
+      </div>
+    </div>
+
+    <div
+      *ngIf="songs().length === 0"
+      class="flex flex-col items-center justify-center rounded-[20px] border py-10 text-center"
+      style="background: var(--ms-card-hover); border-color: var(--ms-border-subtle);"
+    >
+      <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-ms-primary/10 text-ms-primary">
+        <span class="material-icons text-[28px]">queue_music</span>
+      </div>
+      <p class="text-[15px] font-semibold text-[var(--ms-text)]">No songs yet</p>
+      <p class="max-w-[240px] text-[13px] text-[var(--ms-text-muted)]">Search above or add a new song to build your setlist.</p>
+    </div>
+  </div>
+</section>

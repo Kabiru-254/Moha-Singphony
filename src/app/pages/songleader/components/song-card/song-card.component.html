@@ -1,0 +1,76 @@
+<div
+  class="song-card group relative flex items-center gap-4 rounded-[20px] border p-4 transition-all duration-[250ms]"
+  [class.cursor-pointer]="!isCurrent"
+  [class.draggable]="draggable()"
+  [attr.aria-current]="isCurrent ? 'true' : null"
+  [attr.aria-label]="song().title + ', ' + displayKey + ', ' + displayTempo"
+  (click)="!isCurrent && onSelect()"
+>
+  <div
+    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-lg font-bold transition-colors"
+    [ngClass]="{
+      'bg-gradient-to-br from-ms-primary to-ms-secondary text-white shadow-ms-glow': isCurrent,
+      'bg-ms-primary/10 text-ms-primary': status() === 'next',
+      'bg-[var(--ms-card-hover)] text-[var(--ms-text-muted)]': status() === 'upcoming' || status() === 'completed'
+    }"
+  >
+    <span *ngIf="!isCurrent">{{ index() + 1 }}</span>
+    <span *ngIf="isCurrent" class="material-icons text-[22px]">play_arrow</span>
+  </div>
+
+  <div class="min-w-0 flex-1">
+    <div class="flex items-center gap-2">
+      <h3
+        class="truncate text-[16px] font-semibold"
+        [class.text-[var(--ms-text)]]="isCurrent || status() === 'next'"
+        [class.text-[var(--ms-text-secondary)]]="!isCurrent && status() !== 'next'"
+      >
+        {{ song().title }}
+      </h3>
+      <span
+        *ngIf="isCurrent"
+        class="ms-badge-section"
+      >
+        <span class="material-icons text-[12px]">mic</span>
+        Live
+      </span>
+    </div>
+    <div class="mt-1.5 flex flex-wrap items-center gap-2">
+      <span class="ms-badge-key">
+        <span class="material-icons text-[12px]">music_note</span>
+        {{ displayKey }}
+      </span>
+      <span class="ms-badge-tempo">
+        <span class="material-icons text-[12px]">speed</span>
+        {{ displayTempo }}
+      </span>
+      <span class="text-[12px] font-medium text-[var(--ms-text-muted)]">
+        {{ song().structure.length }} sections
+      </span>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-1 opacity-0 transition-opacity duration-[200ms] group-hover:opacity-100 focus-within:opacity-100">
+    <button
+      type="button"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--ms-text-muted)] transition-colors hover:bg-ms-primary/10 hover:text-ms-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ms-primary/30"
+      [attr.aria-label]="'Broadcast ' + song().title"
+      (click)="onBroadcast($event)"
+    >
+      <span class="material-icons text-[18px]">cast</span>
+    </button>
+    <button
+      type="button"
+      class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--ms-text-muted)] transition-colors hover:bg-ms-danger/10 hover:text-ms-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-ms-danger/30"
+      [attr.aria-label]="'Remove ' + song().title + ' from setlist'"
+      (click)="onRemove($event)"
+    >
+      <span class="material-icons text-[18px]">close</span>
+    </button>
+  </div>
+
+  <div
+    *ngIf="isCurrent"
+    class="absolute inset-y-0 left-0 w-1 rounded-l-[20px] bg-gradient-to-b from-ms-primary to-ms-secondary"
+  ></div>
+</div>
