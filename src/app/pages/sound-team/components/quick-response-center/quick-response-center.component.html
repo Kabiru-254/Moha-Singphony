@@ -1,0 +1,30 @@
+<section class="rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-5 shadow-[var(--ms-shadow-md)] md:p-6">
+  <div class="mb-5 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-[var(--ms-text-secondary)]">bolt</span>
+    <h3 class="text-[14px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Quick Response Center</h3>
+  </div>
+
+  <div class="space-y-6">
+    <div *ngFor="let groupKey of ['communication', 'volume', 'troubleshooting']">
+      <div class="mb-3 flex items-center gap-2">
+        <span class="material-icons text-[16px] text-[var(--ms-text-secondary)]">{{ groupLabels[groupKey].icon }}</span>
+        <h4 class="text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">{{ groupLabels[groupKey].label }}</h4>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+        <button
+          *ngFor="let response of groupedResponses()[groupKey]"
+          type="button"
+          (click)="sendResponse.emit(response)"
+          class="response-card group flex flex-col items-start gap-2 rounded-[16px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] p-3 text-left transition-all duration-200 hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] md:p-4"
+        >
+          <span class="material-icons text-[22px] text-[var(--ms-primary)] transition-transform duration-200 group-hover:scale-110">{{ response.icon }}</span>
+          <div>
+            <div class="text-[14px] font-semibold text-[var(--ms-text)]">{{ response.title }}</div>
+            <div class="text-[11px] leading-tight text-[var(--ms-text-muted)]">{{ response.description }}</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
