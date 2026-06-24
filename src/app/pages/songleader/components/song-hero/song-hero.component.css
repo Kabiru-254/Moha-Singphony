@@ -1,0 +1,77 @@
+.song-hero {
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+  box-shadow: var(--ms-shadow-xl);
+}
+
+.metric-pill {
+  @apply inline-flex items-center gap-2 rounded-full border px-3 py-2 transition-colors hover:bg-[var(--ms-card-hover)];
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+}
+
+.control-btn {
+  @apply inline-flex items-center justify-center gap-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40;
+}
+
+.control-btn-primary {
+  @apply h-16 w-16 rounded-full;
+  background: linear-gradient(135deg, var(--ms-primary), var(--ms-secondary));
+  color: white;
+  box-shadow: var(--ms-shadow-glow);
+}
+
+.control-btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 32px rgba(99, 102, 241, 0.4);
+}
+
+.control-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.control-btn-secondary {
+  @apply h-12 w-12 rounded-full border;
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+  color: var(--ms-text);
+}
+
+.control-btn-secondary:hover {
+  background: var(--ms-card-hover);
+  transform: translateY(-1px);
+}
+
+.control-btn-broadcast {
+  @apply h-12 rounded-full px-4 border;
+  background: var(--ms-card);
+  border-color: var(--ms-border-subtle);
+  color: var(--ms-text);
+}
+
+.control-btn-broadcast:hover {
+  background: var(--ms-primary);
+  border-color: var(--ms-primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.waveform-bg {
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 60%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 60%);
+}
+
+.instruction-banner {
+  animation: instruction-pop 350ms var(--ms-easing-bounce);
+}
+
+@keyframes instruction-pop {
+  0% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
