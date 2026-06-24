@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+button {
+  border-color: var(--ms-border-subtle);
+  background: var(--ms-bg);
+}
+
+button:hover {
+  border-color: var(--ms-border);
+  background: var(--ms-card-hover);
+  transform: translateY(-1px);
+}
+
+button.active {
+  border-color: var(--ms-primary);
+  background: var(--ms-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+button:active {
+  transform: scale(0.98);
+}
