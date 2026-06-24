@@ -1,393 +1,185 @@
-<div class="min-h-screen p-4 md:p-6 w-full">
-  <div class="container mx-auto max-w-6xl flex flex-col space-y-8">
+<div class="min-h-screen w-full bg-[var(--ms-bg)]">
   <!-- Notification Component -->
   <app-notification></app-notification>
 
-  <!-- Header -->
-  <header class="flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎶 Song Leader Dashboard</h1>
-    <button
-      (click)="toggleTheme()"
-      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      aria-label="Toggle theme"
-    >
-      <span class="material-icons text-base">{{ theme === 'dark' ? 'dark_mode' : 'light_mode' }}</span>
-      <span class="text-sm hidden sm:inline">{{ theme === 'dark' ? 'Dark' : 'Light' }}</span>
-    </button>
-  </header>
+  <!-- Top App Bar -->
+  <app-app-bar
+    [isDarkMode]="theme() === 'dark'"
+    (toggleTheme)="toggleTheme()"
+    (openNotifications)="notificationService.clearAllNotifications()"
+  ></app-app-bar>
 
-  <!-- Current Song Info -->
-  <section class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
-        {{ currentSongState?.song?.title || 'No Song Selected' }}
-      </h2>
-      <div class="flex items-center">
-        <button
-          class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 mr-2"
-          (click)="togglePlayPause()"
-        >
-          <span class="material-icons">
-            {{ currentSongState?.isPlaying ? 'pause' : 'play_arrow' }}
-          </span>
-        </button>
-      </div>
-    </div>
-    <div class="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-      <div>Key:
-        <span
-          class="font-medium cursor-pointer hover:text-blue-500"
-          (click)="toggleKeyGrid()"
-        >
-          {{ currentSongState?.currentKey || 'C' }}
-        </span>
-      </div>
-      <div>Tempo: <span class="font-medium">{{ currentSongState && currentSongState.tempo === 100 ? 'Medium' : (currentSongState && currentSongState.tempo < 100 ? 'Slower' : 'Faster') }} ({{ currentSongState?.tempo || 100 }})</span></div>
-      <div>Section: <span class="font-medium">{{ currentSongState?.currentSection || 'N/A' }}</span></div>
-    </div>
+  <!-- Main Dashboard -->
+  <main class="mx-auto max-w-[1600px] p-4 md:p-6 lg:p-8">
+    <!-- Hero Control Center -->
+    <app-song-hero
+      [state]="currentSongState()"
+      [currentInstruction]="broadcastingCommand() || ''"
+      (broadcast)="broadcastCurrentSong()"
+      (toggleKeyPanel)="toggleKeyPanel()"
+    ></app-song-hero>
 
-    <!-- Key Selection Grid (Hidden by default) -->
-    <div *ngIf="showKeyGrid" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
-      <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-        <button
-          *ngFor="let key of allKeys"
-          class="py-2 px-3 rounded-md text-center"
-          [ngClass]="currentSongState && currentSongState.currentKey === key ?
-            'bg-blue-500 text-white' :
-            'bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-700'"
-          (click)="selectKey(key)"
-        >
-          {{ key }}
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Today's Setlist -->
-  <section class="mb-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Today's Setlist</h2>
-      <div class="flex items-center space-x-2">
-        <button
-          class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200 mr-2"
-          (click)="broadcastSetlist()"
-          [disabled]="!currentSetlist || !currentSetlist.songs.length"
-        >
-          <span class="material-icons mr-2">send</span> Broadcast Setlist
-        </button>
-        <button
-          class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-4 rounded-xl flex items-center shadow-md transition-all duration-200"
-          (click)="openSongSetupModal()"
-        >
-          <span class="material-icons mr-2">add</span> Add Song
-        </button>
-      </div>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="relative mb-4">
-      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <span class="material-icons text-gray-400">search</span>
-      </div>
-      <input
-        type="text"
-        placeholder="Search songs..."
-        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        [(ngModel)]="searchQuery"
-        (input)="searchSongs()"
-      />
-    </div>
-
-    <!-- Setlist Songs -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-4">
-      <h3 class="text-md font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center">
-        <span class="material-icons mr-2">queue_music</span> Current Setlist
-      </h3>
-      <div *ngIf="currentSetlist?.songs && currentSetlist?.songs?.length" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+    <!-- Dashboard Grid -->
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+      <!-- Left column: Setlist & Controls -->
+      <div class="flex flex-col gap-6 lg:col-span-7 xl:col-span-8">
+        <!-- Key Selector Panel -->
         <div
-          *ngFor="let song of currentSetlist?.songs; let i = index"
-          class="group bg-gray-50 dark:bg-gray-700 p-4 rounded-xl shadow flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-200 border-l-4"
-          [ngClass]="{'border-green-500': currentSongState && currentSongState.song && currentSongState.song.id === song.id, 'border-transparent': !currentSongState || !currentSongState.song || currentSongState.song.id !== song.id}"
-          (click)="selectSong(song)"
+          *ngIf="showKeyPanel()"
+          class="overflow-hidden"
+          [@panelExpand]="showKeyPanel()"
         >
-          <div class="flex items-center">
-            <span class="text-gray-500 dark:text-gray-400 mr-3">{{ i + 1 }}</span>
-            <div>
-              <span class="text-md font-medium text-gray-800 dark:text-gray-200">{{ song.title }}</span>
-              <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs">{{ song.keys[0] }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center">
+          <app-key-selector
+            [keys]="allKeys()"
+            [selectedKey]="currentKey()"
+            [compact]="false"
+            (selectKey)="selectKey($event)"
+          ></app-key-selector>
+        </div>
+
+        <!-- Setlist Management -->
+        <app-setlist-panel
+          [setlist]="currentSetlist()"
+          [currentSongState]="currentSongState()"
+          [searchResults]="filteredSongs()"
+          [searchQuery]="searchQuery()"
+          (queryChange)="onSearchQueryChange($event)"
+          (addSong)="addToSetlist($event)"
+          (selectSong)="selectSong($event)"
+          (broadcastSong)="broadcastSong($event)"
+          (removeSong)="removeFromSetlist($event)"
+          (reorder)="onReorderSetlist($event)"
+          (broadcastSetlist)="broadcastSetlist()"
+          (addNewSong)="openSongSetupModal()"
+        ></app-setlist-panel>
+
+        <!-- Live Control Center -->
+        <app-live-control-center
+          [state]="currentSongState()"
+          [broadcastingCommand]="broadcastingCommand()"
+          (transposeDown)="transposeKey(-1)"
+          (transposeUp)="transposeKey(1)"
+          (tempoDown)="adjustTempo('slower')"
+          (tempoUp)="adjustTempo('faster')"
+          (tempoSet)="setTempo($event)"
+          (instruction)="sendMusicalInstruction($event)"
+        ></app-live-control-center>
+      </div>
+
+      <!-- Right column: Widgets -->
+      <div class="flex flex-col gap-6 lg:col-span-5 xl:col-span-4">
+        <!-- Analytics -->
+        <app-analytics-widget
+          [songsPlayed]="songsPlayed()"
+          [averageTempo]="averageTempo()"
+          [responseTimeMs]="24"
+          [activeMusicians]="musicians.length"
+          [messagesSent]="messagesSent()"
+          [songsRemaining]="songsRemaining()"
+        ></app-analytics-widget>
+
+        <!-- Connected Musicians -->
+        <app-musicians-widget
+          [musicians]="musicians"
+          [totalConnected]="musicians.length"
+        ></app-musicians-widget>
+
+        <!-- Broadcast Activity -->
+        <app-broadcast-feed
+          [messages]="messageHistory()"
+        ></app-broadcast-feed>
+
+        <!-- Quick Notes -->
+        <app-quick-notes
+          [notes]="quickNotes()"
+          (notesChange)="onNotesChange($event)"
+        ></app-quick-notes>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add New Song Modal -->
+  <div
+    *ngIf="showSongSetupModal()"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="song-modal-title"
+  >
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeSongSetupModal()"></div>
+    <div class="relative w-full max-w-md rounded-[24px] border p-6 shadow-ms-2xl"
+         style="background: var(--ms-card); border-color: var(--ms-border-subtle);">
+      <div class="mb-5 flex items-center justify-between">
+        <h2 id="song-modal-title" class="text-[20px] font-bold text-[var(--ms-text)]">Add New Song</h2>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Close modal"
+          (click)="closeSongSetupModal()"
+        >
+          <span class="material-icons text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Song Title</label>
+          <input
+            type="text"
+            [value]="newSong().title"
+            placeholder="Enter song title"
+            class="ms-input"
+            (input)="setNewSongTitle($event)"
+          />
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Key</label>
+          <div class="grid grid-cols-4 gap-2">
             <button
-              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
-              (click)="broadcastSong(song); $event.stopPropagation();"
+              *ngFor="let key of allKeys()"
+              type="button"
+              class="rounded-[12px] border px-2 py-2 text-[14px] font-semibold transition-all"
+              [style.background]="newSong().key === key ? 'linear-gradient(135deg, var(--ms-primary), var(--ms-secondary))' : 'var(--ms-card)'"
+              [style.border-color]="newSong().key === key ? 'transparent' : 'var(--ms-border-subtle)'"
+              [style.color]="newSong().key === key ? 'white' : 'var(--ms-text)'"
+              (click)="setNewSongKey(key)"
             >
-              <span class="material-icons">cast</span>
-            </button>
-            <button
-              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
-              (click)="removeFromSetlist(song.id); $event.stopPropagation();"
-            >
-              <span class="material-icons">close</span>
+              {{ key }}
             </button>
           </div>
         </div>
-      </div>
-      <p *ngIf="!currentSetlist?.songs || currentSetlist?.songs?.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-4">
-        No songs in setlist. Add songs to create your setlist.
-      </p>
-    </div>
 
-    <!-- Search Results (only shown when searching). Selecting a song adds it to the setlist. -->
-    <div *ngIf="searchQuery && searchQuery.trim().length" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
-      <h3 class="text-md font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center">
-        <span class="material-icons mr-2">search</span> Search Results
-      </h3>
-      <div class="space-y-2 max-h-64 overflow-y-auto pr-2">
-        <div *ngFor="let song of filteredSongs"
-             class="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 cursor-pointer"
-             [class.opacity-60]="isInSetlist(song.id)"
-             (click)="!isInSetlist(song.id) && addToSetlistAndClearSearch(song.id)">
-          <div class="flex items-center gap-3">
-            <span class="text-gray-800 dark:text-gray-200 font-medium">{{ song.title }}</span>
-            <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs">{{ song.keys[0] }}</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span *ngIf="isInSetlist(song.id)" class="text-green-600 dark:text-green-400 flex items-center">
-              <span class="material-icons text-base mr-1">check_circle</span> In Setlist
-            </span>
-            <span *ngIf="!isInSetlist(song.id)" class="text-gray-500 dark:text-gray-400">Tap to add</span>
-          </div>
+        <div>
+          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Structure</label>
+          <input
+            type="text"
+            [value]="newSong().structure"
+            placeholder="Verse, Chorus, Bridge, Chorus"
+            class="ms-input"
+            (input)="setNewSongStructure($event)"
+          />
+          <p class="mt-1 text-[11px] text-[var(--ms-text-muted)]">Comma-separated sections</p>
         </div>
       </div>
-    </div>
 
-  </section>
-
-
-  <!-- Quick-Fire Command Cards -->
-  <section class="mb-6">
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Quick Commands</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      <!-- Transpose Controls -->
-      <button
-        class="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="transposeKey(-1)"
-      >
-        Transpose –
-      </button>
-      <button
-        class="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="transposeKey(1)"
-      >
-        Transpose +
-      </button>
-
-      <!-- Tempo Controls -->
-      <button
-        class="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="adjustTempo('slower')"
-      >
-        Tempo –
-      </button>
-      <button
-        class="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="adjustTempo('faster')"
-      >
-        Tempo +
-      </button>
-
-      <!-- Musical Instructions -->
-      <button
-        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Break it down')"
-      >
-        Break It Down
-      </button>
-      <button
-        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Build up')"
-      >
-        Build Up
-      </button>
-      <button
-        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Keys+Strings Only')"
-      >
-        Keys + Strings Only
-      </button>
-      <button
-        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('No drums')"
-      >
-        No Drums
-      </button>
-      <button
-        class="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-3 rounded-2xl shadow-lg text-center font-medium transition-all duration-200 transform hover:scale-105"
-        (click)="sendMusicalInstruction('Nice playing')"
-      >
-        Nice Playing
-      </button>
-    </div>
-  </section>
-
-  <!-- Key Selector -->
-  <section class="mb-6">
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Key Selector</h2>
-    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-3">
-      <button
-        *ngFor="let key of allKeys"
-        class="py-3 px-2 rounded-xl text-center font-bold text-lg transition-all duration-200 transform hover:scale-110"
-        [ngClass]="currentSongState && currentSongState.currentKey === key ?
-          'bg-blue-500 text-white shadow-lg' :
-          'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900 shadow'"
-        (click)="selectKey(key)"
-      >
-        {{ key }}
-      </button>
-    </div>
-  </section>
-
-  <!-- Custom Message Section -->
-  <section class="mb-6">
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Custom Message</h2>
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipients</label>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.MUSICIAN) ?
-              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.MUSICIAN)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">music_note</span>
-              Musicians
-            </div>
-          </button>
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.SOUND_TEAM) ?
-              'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.SOUND_TEAM)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">headphones</span>
-              Sound Team
-            </div>
-          </button>
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.ALL) ?
-              'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.ALL)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">people</span>
-              Everyone
-            </div>
-          </button>
-        </div>
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
-        <textarea
-          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows="3"
-          placeholder="Type your message here..."
-          [(ngModel)]="customMessage"
-        ></textarea>
-      </div>
-      <button
-        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-4 rounded-xl shadow-lg w-full font-medium transition-all duration-200 flex items-center justify-center"
-        [disabled]="!customMessage.trim() || selectedRecipients.length === 0"
-        [ngClass]="{'opacity-50 cursor-not-allowed': !customMessage.trim() || selectedRecipients.length === 0}"
-        (click)="sendCustomMessage()"
-      >
-        <span class="material-icons mr-2">send</span>
-        Send Message
-      </button>
-    </div>
-  </section>
-</div>
-
-<!-- Song Setup Modal -->
-<div *ngIf="showSongSetupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md animate-flyIn">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Add New Song</h2>
-      <button
-        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
-        (click)="closeSongSetupModal()"
-      >
-        <span class="material-icons">close</span>
-      </button>
-    </div>
-
-    <div class="space-y-4">
-      <!-- Song Title -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Song Title</label>
-        <input
-          type="text"
-          class="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Enter song title"
-          [(ngModel)]="newSong.title"
+      <div class="mt-6 flex justify-end gap-3">
+        <button
+          type="button"
+          class="ms-btn-ghost"
+          (click)="closeSongSetupModal()"
         >
-      </div>
-
-      <!-- Key -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Key</label>
-        <div class="grid grid-cols-4 gap-2">
-          <button
-            *ngFor="let key of allKeys"
-            class="py-2 px-3 rounded-lg text-center transition-all duration-200"
-            [ngClass]="newSong.key === key ?
-              'bg-blue-500 text-white' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900'"
-            (click)="newSong.key = key"
-          >
-            {{ key }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Structure -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Structure (comma separated)</label>
-        <input
-          type="text"
-          class="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Verse, Chorus, Bridge"
-          [(ngModel)]="newSong.structure"
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ms-btn-primary"
+          [disabled]="!newSong().title"
+          (click)="saveSong()"
         >
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Example: Verse 1, Chorus, Verse 2, Chorus, Bridge, Chorus</p>
+          Save Song
+        </button>
       </div>
-    </div>
-
-    <div class="mt-6 flex justify-end space-x-3">
-      <button
-        class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-        (click)="closeSongSetupModal()"
-      >
-        Cancel
-      </button>
-      <button
-        class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-        [disabled]="!newSong.title"
-        [ngClass]="{'opacity-50 cursor-not-allowed': !newSong.title}"
-        (click)="saveSong()"
-      >
-        Save Song
-      </button>
     </div>
   </div>
-</div>
 </div>

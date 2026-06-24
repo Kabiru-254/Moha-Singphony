@@ -1,352 +1,349 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { trigger, transition, style, animate } from '@angular/animations';
 
-import { MessageService, MessageType, RecipientRole, Song, CurrentSongState } from '../../services/message.service';
+import { MessageService, MessageType, RecipientRole, Song, CurrentSongState, Message } from '../../services/message.service';
 import { SongService, Setlist } from '../../services/song.service';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationComponent } from '../../shared/notification/notification.component';
 
+import { AppBarComponent } from './components/app-bar/app-bar.component';
+import { SongHeroComponent } from './components/song-hero/song-hero.component';
+import { SetlistPanelComponent } from './components/setlist-panel/setlist-panel.component';
+import { LiveControlCenterComponent } from './components/live-control-center/live-control-center.component';
+import { AnalyticsWidgetComponent } from './components/analytics-widget/analytics-widget.component';
+import { BroadcastFeedComponent } from './components/broadcast-feed/broadcast-feed.component';
+import { MusiciansWidgetComponent, Musician } from './components/musicians-widget/musicians-widget.component';
+import { QuickNotesComponent } from './components/quick-notes/quick-notes.component';
+import { KeySelectorComponent } from './components/key-selector/key-selector.component';
+
 @Component({
   selector: 'app-songleader',
+  standalone: true,
   imports: [
-    FormsModule,
     CommonModule,
-    NotificationComponent
+    FormsModule,
+    NotificationComponent,
+    AppBarComponent,
+    SongHeroComponent,
+    SetlistPanelComponent,
+    LiveControlCenterComponent,
+    AnalyticsWidgetComponent,
+    BroadcastFeedComponent,
+    MusiciansWidgetComponent,
+    QuickNotesComponent,
+    KeySelectorComponent
   ],
   templateUrl: './songleader.component.html',
-  standalone: true,
-  styleUrl: './songleader.component.css'
+  styleUrl: './songleader.component.css',
+  animations: [
+    trigger('panelExpand', [
+      transition(':enter', [
+        style({ height: 0, opacity: 0, transform: 'translateY(-8px)' }),
+        animate('300ms cubic-bezier(0.16, 1, 0.3, 1)', style({ height: '*', opacity: 1, transform: 'translateY(0)' }))
+      ]),
+      transition(':leave', [
+        style({ height: '*', opacity: 1, transform: 'translateY(0)' }),
+        animate('250ms cubic-bezier(0.16, 1, 0.3, 1)', style({ height: 0, opacity: 0, transform: 'translateY(-8px)' }))
+      ])
+    ])
+  ]
 })
 export class SongleaderComponent implements OnInit, OnDestroy {
-  // Make RecipientRole enum available in the template
+  // Enums for template
   RecipientRole = RecipientRole;
   MessageType = MessageType;
 
-  // Songs and song state
-  songs: Song[] = [];
-  filteredSongs: Song[] = [];
-  currentSongState: CurrentSongState | null = null;
-  currentSetlist: Setlist | null = null;
-  searchQuery: string = '';
+  // Signals for reactive state
+  songs = signal<Song[]>([]);
+  filteredSongs = signal<Song[]>([]);
+  currentSongState = signal<CurrentSongState | null>(null);
+  currentSetlist = signal<Setlist | null>(null);
+  searchQuery = signal('');
+  theme = signal<'light' | 'dark'>('light');
+  showKeyPanel = signal(false);
+  showSongSetupModal = signal(false);
+  broadcastingCommand = signal<string | null>(null);
+  quickNotes = signal('');
+  messageHistory = signal<Message[]>([]);
 
-  // Song setup modal
-  showSongSetupModal: boolean = false;
-  newSong: {
-    title: string;
-    key: string;
-    structure: string;
-  } = {
+  // New song form
+  newSong = signal<{ title: string; key: string; structure: string }>({
     title: '',
     key: 'C',
     structure: ''
-  };
+  });
 
-  // Keys grid
-  allKeys: string[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  allKeys = signal(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']);
 
-  // Commands
-  musicalInstructions: string[] = [
-    'Break it down',
-    'Build up',
-    'Keys+Strings Only',
-    'No drums',
-    'Transpose up',
-    'Transpose down'
+  // Computed derived state
+  currentKey = computed(() => this.currentSongState()?.currentKey || 'C');
+  currentTempo = computed(() => this.currentSongState()?.tempo || 100);
+  setlistSongs = computed(() => this.currentSetlist()?.songs || []);
+
+  songsPlayed = computed(() => {
+    const songs = this.setlistSongs();
+    const currentId = this.currentSongState()?.song?.id;
+    const currentIndex = songs.findIndex(s => s.id === currentId);
+    return currentIndex >= 0 ? currentIndex + 1 : 0;
+  });
+
+  songsRemaining = computed(() => {
+    const songs = this.setlistSongs();
+    const currentId = this.currentSongState()?.song?.id;
+    const currentIndex = songs.findIndex(s => s.id === currentId);
+    return currentIndex >= 0 ? Math.max(0, songs.length - currentIndex - 1) : songs.length;
+  });
+
+  averageTempo = computed(() => {
+    const songs = this.setlistSongs();
+    if (songs.length === 0) return this.currentTempo();
+    const total = songs.reduce((sum, s) => sum + s.tempo, 0);
+    return Math.round(total / songs.length);
+  });
+
+  messagesSent = computed(() => this.messageHistory().length);
+
+  // Mock connected musicians
+  musicians: Musician[] = [
+    { name: 'Elvis Akello', role: 'Drummer', instrument: 'Drums', online: true },
+    { name: 'James Makumi', role: 'Bassist', instrument: 'Bass', online: true },
+    { name: 'Joel Njoroge', role: 'Keys', instrument: 'Keys', online: true },
+    { name: 'Nadai Mumo', role: 'BGV Leader', instrument: 'Vocals', online: true },
+    { name: 'Billy Paul', role: 'Lead', instrument: 'Lead Guitar', online: true },
+    { name: 'Caleb Karisa', role: 'Acoustic', instrument: 'Acoustic Guitar', online: true }
   ];
 
-  soundRequests: string[] = [
-    'Can\'t hear band',
-    'Can\'t hear keys',
-    'Can\'t hear me',
-    'Sound OK'
-  ];
-
-  deaconMessages: string[] = [
-    'Call the Minister',
-    'Extend worship time',
-    'Wrap up soon'
-  ];
-
-  // Message composition
-  customMessage: string = '';
-  selectedRecipients: RecipientRole[] = [];
-
-  // UI state
-  theme: string = 'light';
-  activeTab: 'all' | 'musicians' | 'sound' | 'deacon' = 'all';
-  showKeyGrid: boolean = false;
-
-  // Subscriptions
   private subscriptions: Subscription = new Subscription();
 
   constructor(
     private router: Router,
     private messageService: MessageService,
     private songService: SongService,
-    private notificationService: NotificationService
+    protected notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
     // Load songs
     this.subscriptions.add(
       this.songService.songs$.subscribe(songs => {
-        this.songs = songs;
-        this.filteredSongs = songs;
+        this.songs.set(songs);
+        this.filteredSongs.set(songs);
       })
     );
 
-    // Subscribe to current song updates
+    // Current song state
     this.subscriptions.add(
-      this.messageService.currentSong$.subscribe(songState => {
-        this.currentSongState = songState;
+      this.messageService.currentSong$.subscribe(state => {
+        this.currentSongState.set(state);
       })
     );
 
-    // Subscribe to setlist updates
+    // Setlist updates
     this.subscriptions.add(
       this.songService.setlist$.subscribe(setlist => {
-        this.currentSetlist = setlist;
+        this.currentSetlist.set(setlist);
+      })
+    );
+
+    // Subscribe to search results
+    this.subscriptions.add(
+      this.songService.searchResults$.subscribe(results => {
+        this.filteredSongs.set(results);
       })
     );
 
     // Subscribe to messages
     this.subscriptions.add(
       this.messageService.getMessagesForRole(RecipientRole.SONG_LEADER).subscribe(message => {
-        // Handle incoming messages for song leader
         this.notificationService.createNotificationFromMessage(message);
+        this.messageHistory.update(history => [...history, message]);
       })
     );
 
-    // Initialize theme from localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      this.theme = savedTheme;
-      document.documentElement.classList.toggle('dark', this.theme === 'dark');
-    }
+    // Theme initialization
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const initialTheme = savedTheme === 'dark' ? 'dark' : 'light';
+    this.theme.set(initialTheme);
+    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
   }
 
-  toggleTheme() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
-    document.documentElement.classList.toggle('dark', this.theme === 'dark');
-    try { localStorage.setItem('theme', this.theme); } catch {}
+  // Theme
+  toggleTheme(): void {
+    const next = this.theme() === 'light' ? 'dark' : 'light';
+    this.theme.set(next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+    try { localStorage.setItem('theme', next); } catch {}
   }
 
-  navigateToSongManagement() {
-    this.router.navigate(['/song-leader']);
+  // Search
+  onSearchQueryChange(query: string): void {
+    this.searchQuery.set(query);
+    this.songService.searchSongs(query);
   }
 
-  searchSongs() {
-    if (!this.searchQuery.trim()) {
-      this.filteredSongs = this.songs;
-      return;
-    }
-
-    this.filteredSongs = this.songs.filter(song =>
-      song.title.toLowerCase().includes(this.searchQuery.toLowerCase())
-    );
-  }
-
-  selectSong(song: Song) {
+  // Song selection
+  selectSong(song: Song): void {
     this.songService.selectCurrentSong(song.id);
   }
 
-  selectKey(key: string) {
-    // Allow key selection even if no song is currently selected; update global state and broadcast locally
-    this.messageService.updateCurrentSong({
-      currentKey: key
-    });
-    this.showKeyGrid = false;
+  // Setlist management
+  addToSetlist(song: Song): void {
+    this.songService.addToActiveSetlist(song.id);
+    this.notificationService.showNotification(`Added ${song.title} to setlist`, 'resolved');
   }
 
-  transposeKey(step: number) {
-    if (this.currentSongState) {
-      const currentIndex = this.allKeys.indexOf(this.currentSongState.currentKey);
-      if (currentIndex !== -1) {
-        const newIndex = (currentIndex + step + this.allKeys.length) % this.allKeys.length;
-        this.messageService.updateCurrentSong({
-          currentKey: this.allKeys[newIndex]
-        });
-      }
-    }
-  }
-
-  adjustTempo(direction: 'faster' | 'slower') {
-    if (this.currentSongState) {
-      const currentTempo = this.currentSongState.tempo;
-      let newTempo = currentTempo;
-
-      // Adjust tempo by 5 units each time
-      const tempoStep = 5;
-
-      if (direction === 'faster') {
-        newTempo = currentTempo + tempoStep;
-      } else if (direction === 'slower') {
-        // Ensure tempo doesn't go below 10 (very slow but still audible)
-        newTempo = Math.max(10, currentTempo - tempoStep);
-      }
-
-      if (newTempo !== currentTempo) {
-        this.messageService.updateCurrentSong({
-          tempo: newTempo
-        });
-      }
-    }
-  }
-
-  sendMusicalInstruction(instruction: string) {
-    this.messageService.sendMessage({
-      type: MessageType.MUSICAL_INSTRUCTION,
-      content: { instruction },
-      sender: RecipientRole.SONG_LEADER,
-      recipients: [RecipientRole.MUSICIAN, RecipientRole.PIANIST]
-    });
-  }
-
-  sendSoundRequest(request: string) {
-    this.messageService.sendMessage({
-      type: MessageType.SOUND_REQUEST,
-      content: { request },
-      sender: RecipientRole.SONG_LEADER,
-      recipients: [RecipientRole.SOUND_TEAM]
-    });
-  }
-
-  sendDeaconMessage(message: string) {
-    this.messageService.sendMessage({
-      type: MessageType.SERVICE_COORDINATION,
-      content: { instruction: message },
-      sender: RecipientRole.SONG_LEADER,
-      recipients: [RecipientRole.DEACON]
-    });
-  }
-
-  sendCustomMessage() {
-    if (this.customMessage.trim() && this.selectedRecipients.length > 0) {
-      this.messageService.sendMessage({
-        type: MessageType.CUSTOM_MESSAGE,
-        content: { text: this.customMessage, isUrgent: false },
-        sender: RecipientRole.SONG_LEADER,
-        recipients: this.selectedRecipients
-      });
-
-      this.customMessage = '';
-    }
-  }
-
-  toggleRecipient(role: RecipientRole) {
-    const index = this.selectedRecipients.indexOf(role);
-    if (index === -1) {
-      this.selectedRecipients.push(role);
-    } else {
-      this.selectedRecipients.splice(index, 1);
-    }
-  }
-
-  isRecipientSelected(role: RecipientRole): boolean {
-    return this.selectedRecipients.includes(role);
-  }
-
-  setActiveTab(tab: 'all' | 'musicians' | 'sound' | 'deacon') {
-    this.activeTab = tab;
-  }
-
-  toggleKeyGrid() {
-    this.showKeyGrid = !this.showKeyGrid;
-  }
-
-  togglePlayPause() {
-    if (this.currentSongState) {
-      this.messageService.updateCurrentSong({
-        isPlaying: !this.currentSongState.isPlaying
-      });
-    }
-  }
-
-  // Setlist management methods
-  addToSetlist(songId: number) {
-    this.songService.addToActiveSetlist(songId);
-    this.notificationService.showNotification('Song added to setlist', 'resolved');
-  }
-
-  removeFromSetlist(songId: number) {
-    this.songService.removeFromActiveSetlist(songId);
+  removeFromSetlist(song: Song): void {
+    this.songService.removeFromActiveSetlist(song.id);
     this.notificationService.showNotification('Song removed from setlist', 'info');
   }
 
-  isInSetlist(songId: number): boolean {
-    return !!this.currentSetlist?.songs?.some(s => s.id === songId);
+  onReorderSetlist(songs: Song[]): void {
+    this.songService.reorderActiveSetlist(songs.map(s => s.id));
+    this.notificationService.showNotification('Setlist reordered', 'info');
   }
 
-  addToSetlistAndClearSearch(songId: number) {
-    if (!this.isInSetlist(songId)) {
-      this.addToSetlist(songId);
-    }
-    this.searchQuery = '';
-    this.filteredSongs = this.songs;
-  }
-
-  broadcastSong(song: Song) {
+  broadcastSong(song: Song): void {
     this.selectSong(song);
     this.messageService.sendMessage({
       type: MessageType.GENERAL_COMMUNICATION,
-      content: { text: `Now playing: ${song.title} in ${this.currentSongState?.currentKey || song.keys[0]}` },
+      content: { text: `Now playing: ${song.title} in ${this.currentSongState()?.currentKey || song.keys[0]}` },
       sender: RecipientRole.SONG_LEADER,
       recipients: [RecipientRole.MUSICIAN, RecipientRole.SOUND_TEAM]
     });
     this.notificationService.showNotification(`Broadcasting: ${song.title}`, 'cue');
   }
 
-  broadcastSetlist() {
-    if (this.currentSetlist) {
-      this.songService.setBroadcastSetlist(this.currentSetlist.id);
+  broadcastCurrentSong(): void {
+    const song = this.currentSongState()?.song;
+    if (song) {
+      this.broadcastSong(song);
+    }
+  }
+
+  broadcastSetlist(): void {
+    const setlist = this.currentSetlist();
+    if (setlist) {
+      this.songService.setBroadcastSetlist(setlist.id);
       this.notificationService.showNotification('Setlist broadcasted to team', 'cue');
     }
   }
 
-  // Song setup modal methods
-  openSongSetupModal() {
-    this.showSongSetupModal = true;
-    this.newSong = {
-      title: '',
-      key: 'C',
-      structure: ''
-    };
+  // Key selection
+  selectKey(key: string): void {
+    this.messageService.updateCurrentSong({ currentKey: key });
+    this.showKeyPanel.set(false);
   }
 
-  closeSongSetupModal() {
-    this.showSongSetupModal = false;
+  toggleKeyPanel(): void {
+    this.showKeyPanel.update(v => !v);
   }
 
-  saveSong() {
-    if (this.newSong.title) {
-      const structureArray = this.newSong.structure
-        .split(',')
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
+  transposeKey(step: number): void {
+    const state = this.currentSongState();
+    if (!state) return;
+    const keys = this.allKeys();
+    const currentIndex = keys.indexOf(state.currentKey);
+    if (currentIndex === -1) return;
+    const newIndex = (currentIndex + step + keys.length) % keys.length;
+    this.messageService.updateCurrentSong({ currentKey: keys[newIndex] });
+  }
 
-      const created = this.songService.addSong({
-        title: this.newSong.title,
-        keys: [this.newSong.key],
-        tempo: 100, // Default medium tempo
-        structure: structureArray.length > 0 ? structureArray : ['Verse', 'Chorus']
-      });
-
-      // Immediately add to today's setlist
-      if (created && created.id != null) {
-        this.songService.addToActiveSetlist(created.id);
-        this.notificationService.showNotification('Song created and added to setlist', 'resolved');
-      } else {
-        this.notificationService.showNotification('Song created successfully', 'resolved');
-      }
-
-      this.closeSongSetupModal();
+  // Tempo
+  adjustTempo(direction: 'faster' | 'slower'): void {
+    const state = this.currentSongState();
+    if (!state) return;
+    const step = 5;
+    const newTempo = direction === 'faster'
+      ? state.tempo + step
+      : Math.max(10, state.tempo - step);
+    if (newTempo !== state.tempo) {
+      this.messageService.updateCurrentSong({ tempo: newTempo });
     }
+  }
+
+  setTempo(tempo: number): void {
+    const state = this.currentSongState();
+    if (!state) return;
+    const clamped = Math.max(40, Math.min(240, tempo));
+    if (clamped !== state.tempo) {
+      this.messageService.updateCurrentSong({ tempo: clamped });
+    }
+  }
+
+  // Musical instruction with broadcasting feedback
+  sendMusicalInstruction(instruction: string): void {
+    this.broadcastingCommand.set(instruction);
+    this.messageService.sendMessage({
+      type: MessageType.MUSICAL_INSTRUCTION,
+      content: { instruction },
+      sender: RecipientRole.SONG_LEADER,
+      recipients: [RecipientRole.MUSICIAN, RecipientRole.PIANIST]
+    });
+    this.notificationService.showNotification(`Broadcast: ${instruction}`, 'cue');
+    setTimeout(() => this.broadcastingCommand.set(null), 1500);
+  }
+
+  // Song setup modal
+  openSongSetupModal(): void {
+    this.newSong.set({ title: '', key: 'C', structure: '' });
+    this.showSongSetupModal.set(true);
+  }
+
+  closeSongSetupModal(): void {
+    this.showSongSetupModal.set(false);
+  }
+
+  setNewSongTitle(event: Event | undefined): void {
+    if (!event) return;
+    const value = (event.target as HTMLInputElement).value;
+    this.newSong.update(s => ({ ...s, title: value }));
+  }
+
+  setNewSongKey(key: string): void {
+    this.newSong.update(s => ({ ...s, key }));
+  }
+
+  setNewSongStructure(event: Event | undefined): void {
+    if (!event) return;
+    const value = (event.target as HTMLInputElement).value;
+    this.newSong.update(s => ({ ...s, structure: value }));
+  }
+
+  saveSong(): void {
+    const song = this.newSong();
+    if (!song.title.trim()) return;
+
+    const structureArray = song.structure
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+
+    const created = this.songService.addSong({
+      title: song.title,
+      keys: [song.key],
+      tempo: 100,
+      structure: structureArray.length > 0 ? structureArray : ['Verse', 'Chorus']
+    });
+
+    if (created && created.id != null) {
+      this.songService.addToActiveSetlist(created.id);
+      this.notificationService.showNotification('Song created and added to setlist', 'resolved');
+    } else {
+      this.notificationService.showNotification('Song created successfully', 'resolved');
+    }
+
+    this.closeSongSetupModal();
+  }
+
+  onNotesChange(notes: string): void {
+    this.quickNotes.set(notes);
   }
 }

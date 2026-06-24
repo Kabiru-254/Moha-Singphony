@@ -1,0 +1,27 @@
+main {
+  padding-bottom: 2rem;
+}
+
+/* Ensure modal content stays crisp over the backdrop */
+app-songleader > div > div:last-of-type .relative {
+  z-index: 1;
+}
+
+/* Scrollbars for dashboard panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ms-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ms-text-muted);
+}
