@@ -1,0 +1,136 @@
+<section class="overflow-hidden rounded-[24px] border border-[var(--ms-border-subtle)] bg-[var(--ms-card)] p-5 md:p-6" aria-label="Live control center">
+  <!-- Section header -->
+  <div class="mb-5 flex items-center gap-2">
+    <span class="material-icons text-[18px] text-[var(--ms-text-secondary)]">surround_sound</span>
+    <h2 class="text-[14px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Live Control Center</h2>
+  </div>
+
+  <!-- Unified control strip -->
+  <div class="flex flex-col divide-y divide-[var(--ms-border-subtle)] rounded-[20px] border border-[var(--ms-border-subtle)] bg-[var(--ms-bg)] sm:flex-row sm:divide-x sm:divide-y-0">
+    <!-- Tempo zone -->
+    <div class="flex flex-1 items-center justify-between gap-4 p-4 md:p-5">
+      <div class="min-w-0 flex-1">
+        <div class="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">
+          <span class="material-icons text-[16px] text-[var(--ms-text-secondary)]">speed</span>
+          Tempo
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-[44px] font-bold leading-none tracking-tight text-[var(--ms-text)]">{{ tempo() }}</span>
+          <span class="text-[12px] font-medium text-[var(--ms-text-muted)]">BPM</span>
+        </div>
+        <button
+          type="button"
+          (click)="onTapTempo()"
+          class="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--ms-border)] bg-[var(--ms-bg-elevated)] px-3 py-1.5 text-[12px] font-semibold text-[var(--ms-text-secondary)] transition-colors hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+        >
+          <span class="material-icons text-[14px]">touch_app</span>
+          Tap ♩
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button
+          type="button"
+          (click)="onTempoUp()"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-bg-elevated)] text-[var(--ms-text-secondary)] transition-colors hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+          aria-label="Increase tempo"
+        >
+          <span class="material-icons text-[18px]">add</span>
+        </button>
+        <button
+          type="button"
+          (click)="onTempoDown()"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-bg-elevated)] text-[var(--ms-text-secondary)] transition-colors hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+          aria-label="Decrease tempo"
+        >
+          <span class="material-icons text-[18px]">remove</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Key zone -->
+    <div class="flex flex-1 items-center justify-between gap-4 p-4 md:p-5">
+      <div class="min-w-0 flex-1">
+        <div class="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">
+          <span class="material-icons text-[16px] text-[var(--ms-text-secondary)]">music_note</span>
+          Key
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-[44px] font-bold leading-none tracking-tight text-[var(--ms-text)]">{{ key() }}</span>
+          <span class="text-[12px] font-medium text-[var(--ms-text-muted)]">Current</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button
+          type="button"
+          (click)="onTransposeUp()"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-bg-elevated)] text-[var(--ms-text-secondary)] transition-colors hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+          aria-label="Transpose up"
+        >
+          <span class="material-icons text-[18px]">add</span>
+        </button>
+        <button
+          type="button"
+          (click)="onTransposeDown()"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ms-border-subtle)] bg-[var(--ms-bg-elevated)] text-[var(--ms-text-secondary)] transition-colors hover:border-[var(--ms-border)] hover:bg-[var(--ms-card-hover)] hover:text-[var(--ms-text)]"
+          aria-label="Transpose down"
+        >
+          <span class="material-icons text-[18px]">remove</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active cue zone -->
+    <div class="flex flex-1 flex-col justify-center p-4 md:p-5">
+      <div class="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">
+        <span class="material-icons text-[16px] text-[var(--ms-text-secondary)]">campaign</span>
+        Active Cue
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span
+          class="h-2.5 w-2.5 rounded-full"
+          [style.background-color]="activeInstruction() ? 'var(--ms-success)' : 'var(--ms-text-muted)'"></span>
+        <span
+          class="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+          [class.status-badge-active]="activeInstruction()"
+          [class.status-badge-inactive]="!activeInstruction()"
+        >
+          {{ activeInstruction() ? 'On deck' : 'None' }}
+        </span>
+      </div>
+
+      <p class="mt-2 text-[20px] font-semibold leading-tight text-[var(--ms-text)]">
+        {{ activeInstruction() || 'No active cue' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Band instructions -->
+  <div class="mt-6">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="material-icons text-[16px] text-[var(--ms-text-secondary)]">group</span>
+      <h3 class="text-[12px] font-semibold uppercase tracking-wider text-[var(--ms-text-muted)]">Band Instructions</h3>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <button
+        *ngFor="let cmd of bandInstructions"
+        type="button"
+        (click)="onToggleInstruction(cmd.label)"
+        class="flex flex-col items-center justify-center gap-1.5 rounded-[16px] border px-3 py-3 text-center transition-all duration-200"
+        [class.active-structure]="activeInstruction() === cmd.label && cmd.category === 'structure'"
+        [class.active-mute]="activeInstruction() === cmd.label && cmd.category === 'mute'"
+        [class.active-positive]="activeInstruction() === cmd.label && cmd.category === 'positive'"
+        [class.inactive-band-btn]="activeInstruction() !== cmd.label"
+        [attr.aria-pressed]="activeInstruction() === cmd.label"
+      >
+        <span class="material-icons text-[20px]">
+          {{ cmd.label === 'Break It Down' ? 'expand_more' : cmd.label === 'Build Up' ? 'expand_less' : cmd.label === 'No Drums' ? 'do_not_disturb_on' : cmd.label === 'Keys Only' ? 'piano' : cmd.label === 'Strings Only' ? 'music_note' : 'thumb_up' }}
+        </span>
+        <span class="text-[12px] font-semibold leading-tight">{{ cmd.label }}</span>
+      </button>
+    </div>
+  </div>
+</section>

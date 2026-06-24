@@ -1,0 +1,39 @@
+.status-badge-active {
+  background-color: color-mix(in srgb, var(--ms-success) 15%, transparent);
+  color: var(--ms-success);
+}
+
+.status-badge-inactive {
+  background-color: color-mix(in srgb, var(--ms-text-muted) 15%, transparent);
+  color: var(--ms-text-muted);
+}
+
+.active-structure {
+  border-color: color-mix(in srgb, var(--ms-primary) 40%, transparent);
+  background-color: color-mix(in srgb, var(--ms-primary) 15%, transparent);
+  color: var(--ms-primary);
+}
+
+.active-mute {
+  border-color: color-mix(in srgb, var(--ms-warning) 40%, transparent);
+  background-color: color-mix(in srgb, var(--ms-warning) 15%, transparent);
+  color: var(--ms-warning);
+}
+
+.active-positive {
+  border-color: color-mix(in srgb, var(--ms-success) 40%, transparent);
+  background-color: color-mix(in srgb, var(--ms-success) 15%, transparent);
+  color: var(--ms-success);
+}
+
+.inactive-band-btn {
+  border-color: var(--ms-border-subtle);
+  background-color: transparent;
+  color: var(--ms-text-secondary);
+}
+
+.inactive-band-btn:hover {
+  border-color: var(--ms-border);
+  background-color: var(--ms-card-hover);
+  color: var(--ms-text);
+}
