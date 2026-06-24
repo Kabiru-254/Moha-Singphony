@@ -1,169 +1,76 @@
-<div class="min-h-screen p-4 md:p-6 w-full">
-  <div class="container mx-auto max-w-6xl flex flex-col space-y-8">
-  <!-- Notification Component -->
+<div class="min-h-screen w-full bg-[var(--ms-bg)] text-[var(--ms-text)] font-['Inter']">
   <app-notification></app-notification>
 
-  <!-- Header -->
-  <header class="flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🎧 Sound Team Dashboard</h1>
-    <button
-      (click)="toggleTheme()"
-      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      aria-label="Toggle theme"
-    >
-      <span class="material-icons text-base">{{ theme === 'dark' ? 'dark_mode' : 'light_mode' }}</span>
-      <span class="text-sm hidden sm:inline">{{ theme === 'dark' ? 'Dark' : 'Light' }}</span>
-    </button>
-  </header>
+  <app-sound-team-header
+    [isDarkMode]="isDarkMode()"
+    [unreadCount]="unreadCount()"
+    (toggleTheme)="toggleTheme()"
+    (openNotifications)="unreadCount.set(0)"
+  ></app-sound-team-header>
 
+  <main class="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
+    <!-- Hero -->
+    <app-sound-status-hero
+      class="block"
+      [status]="soundStatus()"
+      [sessionName]="sessionName()"
+      [lastUpdate]="lastUpdate()"
+      [connectedDevices]="connectedDevices()"
+      [connectedMusicians]="connectedMusicians()"
+    ></app-sound-status-hero>
 
-  <!-- Sound Ready Button -->
-  <section class="mb-4">
-    <button
-      class="w-full py-4 px-6 rounded-2xl shadow-lg text-white font-bold text-lg flex items-center justify-center transition-all duration-300"
-      [ngClass]="soundReady ?
-        'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' :
-        'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'"
-      (click)="toggleSoundReady()"
-    >
-      <span class="material-icons mr-2">{{ soundReady ? 'check_circle' : 'pending' }}</span>
-      {{ soundReady ? 'Sound Ready ✅' : 'Sound Not Ready - Click When Ready' }}
-    </button>
-  </section>
-
-  <!-- Quick Reply Cards -->
-  <section class="mb-4">
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Quick Replies</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      <button
-        *ngFor="let reply of quickReplies"
-        class="bg-white dark:bg-gray-800 py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-        (click)="sendQuickReply(reply)"
-      >
-        {{ reply }}
-      </button>
+    <!-- Control panel -->
+    <div class="mt-6">
+      <app-sound-control-panel
+        [activeState]="soundStatus()"
+        (stateChange)="onStateChange($event)"
+      ></app-sound-control-panel>
     </div>
-  </section>
 
-  <!-- Custom Message Section -->
-  <section class="mb-4">
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Custom Message</h2>
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipients</label>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.SONG_LEADER) ?
-              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.SONG_LEADER)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">mic</span>
-              Song Leader
-            </div>
-          </button>
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.MUSICIAN) ?
-              'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.MUSICIAN)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">music_note</span>
-              Musicians
-            </div>
-          </button>
-          <button
-            class="px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            [ngClass]="isRecipientSelected(RecipientRole.ALL) ?
-              'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            (click)="toggleRecipient(RecipientRole.ALL)"
-          >
-            <div class="flex items-center justify-center">
-              <span class="material-icons mr-2">people</span>
-              Everyone
-            </div>
-          </button>
+    <!-- Main grid -->
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <!-- Left column: communication -->
+      <div class="flex flex-col gap-6 lg:col-span-5">
+        <app-communication-hub
+          [templates]="messageTemplates()"
+          (sendMessage)="onSendMessage($event)"
+        ></app-communication-hub>
+
+        <app-quick-response-center
+          [responses]="quickResponses()"
+          (sendResponse)="onQuickResponse($event)"
+        ></app-quick-response-center>
+      </div>
+
+      <!-- Right column: live feed + widgets -->
+      <div class="flex flex-col gap-6 lg:col-span-7">
+        <app-live-feed
+          [messages]="messages()"
+          [autoScroll]="true"
+        ></app-live-feed>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <app-issue-tracker-widget
+            [issues]="issues()"
+            (resolveIssue)="onResolveIssue($event)"
+          ></app-issue-tracker-widget>
+
+          <app-recent-actions-widget
+            [actions]="recentActions()"
+          ></app-recent-actions-widget>
         </div>
       </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message</label>
-        <textarea
-          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows="3"
-          placeholder="Type your message here..."
-          [(ngModel)]="customMessage"
-        ></textarea>
-      </div>
-      <button
-        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-4 rounded-xl shadow-lg w-full font-medium transition-all duration-200 flex items-center justify-center"
-        [disabled]="!customMessage.trim() || selectedRecipients.length === 0"
-        [ngClass]="{'opacity-50 cursor-not-allowed': !customMessage.trim() || selectedRecipients.length === 0}"
-        (click)="sendCustomMessage()"
-      >
-        <span class="material-icons mr-2">send</span>
-        Send Message
-      </button>
     </div>
-  </section>
 
-  <!-- Message Feed -->
-  <section>
-    <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Message Feed</h2>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-      <div *ngIf="messages.length > 0; else noMessages" class="max-h-80 overflow-y-auto">
-        <div
-          *ngFor="let message of messages"
-          class="p-4 border-b border-gray-200 dark:border-gray-700"
-          [ngClass]="{'bg-blue-50 dark:bg-blue-900/20': message.sender === RecipientRole.SONG_LEADER}"
-        >
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="flex items-center">
-                <span class="font-medium text-gray-800 dark:text-gray-200">
-                  {{ message.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
-                     message.sender === RecipientRole.MUSICIAN ? 'Musician' :
-                     message.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
-                </span>
-                <span class="ml-2 text-xs text-gray-500">{{ message.timestamp | date:'shortTime' }}</span>
-              </div>
-              <p class="text-gray-700 dark:text-gray-300 mt-1">
-                {{ message.type === MessageType.CUSTOM_MESSAGE ? message.content.text :
-                   message.type === MessageType.SOUND_REQUEST ? message.content.request :
-                   message.type === MessageType.MUSICAL_INSTRUCTION ? message.content.instruction :
-                   message.type === MessageType.KEY_CHANGE ? 'Key changed to ' + message.content.key :
-                   message.type === MessageType.TEMPO_CHANGE ? (message.content && message.content.tempo === 100 ? 'Tempo: Medium' : (message.content && message.content.tempo < 100 ? 'Tempo: Slower' : 'Tempo: Faster')) + ' (' + (message.content ? message.content.tempo : 100) + ')' :
-                   message.type === MessageType.ACKNOWLEDGMENT ? message.content.text :
-                   message.type === MessageType.GENERAL_COMMUNICATION ? message.content.text : 'Unknown message type' }}
-              </p>
-            </div>
-            <span
-              class="px-2 py-1 text-xs rounded-full"
-              [ngClass]="{
-                'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': message.type === MessageType.KEY_CHANGE,
-                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': message.type === MessageType.TEMPO_CHANGE,
-                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': message.type === MessageType.MUSICAL_INSTRUCTION,
-                'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200': message.type === MessageType.CUSTOM_MESSAGE,
-                'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200': message.type === MessageType.SOUND_REQUEST,
-                'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200': message.type === MessageType.GENERAL_COMMUNICATION
-              }"
-            >
-              {{ message.type.replace('_', ' ') }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <ng-template #noMessages>
-        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
-          <span class="material-icons text-4xl mb-2">notifications_none</span>
-          <p>No messages yet</p>
-        </div>
-      </ng-template>
+    <!-- Bottom widgets -->
+    <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <app-channel-status-widget
+        [channels]="channels()"
+      ></app-channel-status-widget>
+
+      <app-system-health-widget
+        [systems]="systems()"
+      ></app-system-health-widget>
     </div>
-  </section>
-</div>
+  </main>
 </div>
