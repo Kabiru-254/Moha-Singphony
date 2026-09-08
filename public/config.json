@@ -3,6 +3,7 @@
     "enabled": true,
     "provider": "firebase",
     "firebaseDatabaseUrl": "https://moha-singphony-default-rtdb.europe-west1.firebasedatabase.app",
-    "roomId": "demo"
+    "projectId": "moha-singphony",
+    "roomId": "local-test"
   }
 }

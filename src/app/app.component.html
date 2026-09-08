@@ -1,1 +1,44 @@
-<router-outlet />
+<div
+  class="connection-strip"
+  role="status"
+  aria-live="polite"
+>
+  <span>
+    {{ realtime.mode() }} · Room: {{ realtime.room() }}
+  </span>
+
+  <ng-container *ngIf="realtime.error(); else connectionStatus">
+    <strong class="connection-error">
+      {{ realtime.error() }}
+    </strong>
+  </ng-container>
+
+  <ng-template #connectionStatus>
+    <strong *ngIf="!realtime.connected()">
+      Disconnected — live controls paused
+    </strong>
+
+    <strong *ngIf="realtime.connected() && !realtime.ready()">
+      Loading service…
+    </strong>
+
+    <strong *ngIf="realtime.connected() && realtime.ready()">
+      {{
+        realtime.pending() > 0
+          ? 'Connected · Saving…'
+          : 'Connected · Saved'
+      }}
+    </strong>
+  </ng-template>
+
+  <button
+    *ngIf="realtime.failed()"
+    type="button"
+    [disabled]="!realtime.connected() || realtime.pending() > 0"
+    (click)="realtime.retry()"
+  >
+    Retry save
+  </button>
+</div>
+
+<router-outlet></router-outlet>

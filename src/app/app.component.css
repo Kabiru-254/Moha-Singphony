@@ -1,0 +1,82 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.connection-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+
+  padding: 9px 20px;
+
+  border-bottom: 1px solid #d4dfca;
+  background: #eaf0e2;
+  color: #4a6241;
+
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.connection-strip > span {
+  color: #53694a;
+  overflow-wrap: anywhere;
+}
+
+.connection-strip strong {
+  color: #35543a;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.connection-strip .connection-error {
+  color: #974b3a;
+}
+
+.connection-strip button {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 12px;
+
+  border: 1px solid #bdcfae;
+  border-radius: 8px;
+  background: #fffef8;
+  color: #3d5b32;
+
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.connection-strip button:hover:not(:disabled) {
+  background: #f4f8ec;
+  border-color: #94ad82;
+}
+
+.connection-strip button:focus-visible {
+  outline: 3px solid #769669;
+  outline-offset: 3px;
+}
+
+.connection-strip button:disabled {
+  background: #edf1e7;
+  color: #68785e;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .connection-strip {
+    padding: 9px 14px;
+  }
+
+  .connection-strip > span {
+    flex-basis: 100%;
+  }
+
+  .connection-strip button {
+    min-height: 40px;
+  }
+}

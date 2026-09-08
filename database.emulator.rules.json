@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "musifyV2": {
+      "rooms": {
+        "$room": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    }
+  }
+}

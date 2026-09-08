@@ -1,109 +1,194 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription, combineLatest } from 'rxjs';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { combineLatest, Subscription } from 'rxjs';
 
-import {MessageService, RecipientRole, CurrentSongState, MessageType, Message, Song} from '../../services/message.service';
-import { NotificationService } from '../../services/notification.service';
-import { NotificationComponent } from '../../shared/notification/notification.component';
-import { SongService } from '../../services/song.service';
+import {
+  CurrentSongState,
+  Message,
+  MessageService,
+  RecipientRole
+} from '../../services/message.service';
+
+import {
+  SetlistSong,
+  SongService
+} from '../../services/song.service';
+
+import {
+  RealtimeSyncService
+} from '../../services/realtime-sync.service';
 
 @Component({
   selector: 'app-musicians',
   standalone: true,
   imports: [
     CommonModule,
-    NotificationComponent
+    RouterLink
   ],
   templateUrl: './musicians.component.html',
   styleUrl: './musicians.component.css'
 })
 export class MusiciansComponent implements OnInit, OnDestroy {
-  // Current song state
   currentSongState: CurrentSongState | null = null;
-  isOffline = false;
-  nextSong: Song | null = null;
+  nextSong: SetlistSong | null = null;
 
-  // UI state
-  theme: string = 'light';
-  showFlash: boolean = false;
+  cueText = '';
+  sender = '';
+  urgency = 1;
 
-  // Message history
-  messages: { type: string; content: any; timestamp: Date; sender: RecipientRole }[] = [];
-  latestMessage: Message | null = null;
+  remaining: number | null = null;
+  fullscreenError = '';
 
-  // Subscriptions
-  private subscriptions: Subscription = new Subscription();
+  private lastCue = '';
+  private lastSender: RecipientRole | null = null;
+  private lastCueAt = 0;
+
+  private cueTimer?: ReturnType<typeof setTimeout>;
+  private countdownTimer?: ReturnType<typeof setInterval>;
+
+  private readonly subscriptions = new Subscription();
 
   constructor(
-    private messageService: MessageService,
-    private notificationService: NotificationService,
-    private songService: SongService
+    private messages: MessageService,
+    public songs: SongService,
+    public realtime: RealtimeSyncService
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to current song and broadcast setlist to compute next song robustly
     this.subscriptions.add(
       combineLatest([
-        this.messageService.currentSong$,
-        this.songService.broadcastSetlist$
-      ]).subscribe(([songState, setlist]) => {
-        this.currentSongState = songState;
-        if (setlist && setlist.songs && setlist.songs.length > 0) {
-          if (songState?.song) {
-            const currentIndex = setlist.songs.findIndex(s => s.id === songState.song!.id);
-            this.nextSong = currentIndex !== -1 && currentIndex < setlist.songs.length - 1
-              ? setlist.songs[currentIndex + 1]
-              : null;
-          } else {
-            this.nextSong = setlist.songs[0] || null;
-          }
-        } else {
-          this.nextSong = null;
-        }
+        this.messages.currentSong$,
+        this.songs.broadcastSetlist$
+      ]).subscribe(([state]) => {
+        this.currentSongState = state;
+        this.nextSong = this.songs.getNextSong();
       })
     );
 
-    // Subscribe to messages
     this.subscriptions.add(
-      this.messageService.getMessagesForRole(RecipientRole.MUSICIAN).subscribe(message => {
-        // Handle incoming messages for musicians
-        this.notificationService.createNotificationFromMessage(message);
+      this.messages
+        .getMessagesForRole(RecipientRole.MUSICIAN)
+        .subscribe(message => {
+          this.showCue(message);
+        })
+    );
 
-        // Set as latest message and show flash
-        this.latestMessage = message;
-        this.showFlash = true;
-
-        // Hide flash after 3 seconds
-        setTimeout(() => {
-          this.showFlash = false;
-        }, 3000);
-
-        // Add to message history
-        this.messages.unshift({
-          type: message.type,
-          content: this.getMessageContent(message),
-          timestamp: message.timestamp,
-          sender: message.sender
-        });
+    this.subscriptions.add(
+      this.songs.endingAt$.subscribe(() => {
+        this.updateCountdown();
       })
     );
+
+    this.countdownTimer = setInterval(() => {
+      this.updateCountdown();
+    }, 250);
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
+    }
+
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+    }
   }
 
-  toggleTheme() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
-    document.documentElement.classList.toggle('dark', this.theme === 'dark');
-    try { localStorage.setItem('theme', this.theme); } catch {}
+  async fullscreen(): Promise<void> {
+    this.fullscreenError = '';
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      this.fullscreenError =
+        'Full-screen mode is unavailable in this browser.';
+    }
   }
 
-  // Helper method to extract message content
-  private getMessageContent(message: any): any {
-    return message.content;
+  private showCue(message: Message): void {
+    const text = this.messageText(message);
+
+    if (!text) {
+      return;
+    }
+
+    const now = Date.now();
+    const expiresAt = message.expiresAt ?? now + 4000;
+
+    if (expiresAt <= now) {
+      return;
+    }
+
+    const repeated =
+      text === this.lastCue &&
+      message.sender === this.lastSender &&
+      now - this.lastCueAt < 4000;
+
+    this.urgency = repeated
+      ? Math.min(this.urgency + 1, 3)
+      : 1;
+
+    this.lastCue = text;
+    this.lastSender = message.sender;
+    this.lastCueAt = now;
+
+    this.cueText = text;
+    this.sender = message.sender.split('_').join(' ');
+
+    // Cancel the previous timer so an earlier cue cannot
+    // hide a newer one.
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
+    }
+
+    const duration = Math.min(
+      4000,
+      expiresAt - now
+    );
+
+    this.cueTimer = setTimeout(() => {
+      this.cueText = '';
+      this.sender = '';
+      this.urgency = 1;
+    }, duration);
   }
 
-  protected readonly MessageType = MessageType;
-  protected readonly RecipientRole = RecipientRole;
+  private messageText(message: Message): string {
+    const content = message.content;
+
+    if (content.key) {
+      return content.key === '?'
+        ? 'WHAT KEY?'
+        : `KEY: ${content.key}`;
+    }
+
+    if (content.direction) {
+      return String(content.direction).toUpperCase();
+    }
+
+    return (
+      content.instruction ||
+      content.text ||
+      content.request ||
+      ''
+    );
+  }
+
+  private updateCountdown(): void {
+    const endingAt = this.songs.endingAt$.value;
+
+    this.remaining = endingAt === null
+      ? null
+      : Math.max(
+        0,
+        Math.ceil((endingAt - Date.now()) / 1000)
+      );
+  }
 }

@@ -1,24 +1,37 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { trigger, transition, style, animate } from '@angular/animations';
 
-import { MessageService, MessageType, RecipientRole, Song, CurrentSongState, Message } from '../../services/message.service';
-import { SongService, Setlist } from '../../services/song.service';
-import { NotificationService } from '../../services/notification.service';
-import { NotificationComponent } from '../../shared/notification/notification.component';
+import {
+  Component,
+  OnDestroy,
+  OnInit
+} from '@angular/core';
 
-import { AppBarComponent } from './components/app-bar/app-bar.component';
-import { SongHeroComponent } from './components/song-hero/song-hero.component';
-import { SetlistPanelComponent } from './components/setlist-panel/setlist-panel.component';
-import { LiveControlCenterComponent } from './components/live-control-center/live-control-center.component';
-import { AnalyticsWidgetComponent } from './components/analytics-widget/analytics-widget.component';
-import { BroadcastFeedComponent } from './components/broadcast-feed/broadcast-feed.component';
-import { MusiciansWidgetComponent, Musician } from './components/musicians-widget/musicians-widget.component';
-import { QuickNotesComponent } from './components/quick-notes/quick-notes.component';
-import { KeySelectorComponent } from './components/key-selector/key-selector.component';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+
+import {
+  combineLatest,
+  Subscription
+} from 'rxjs';
+
+import {
+  CurrentSongState,
+  Message,
+  MessageService,
+  MessageType,
+  RecipientRole
+} from '../../services/message.service';
+
+import {
+  RealtimeSyncService
+} from '../../services/realtime-sync.service';
+
+import {
+  MUSICAL_KEYS,
+  Setlist,
+  SetlistSong,
+  SongService
+} from '../../services/song.service';
 
 @Component({
   selector: 'app-songleader',
@@ -26,324 +39,422 @@ import { KeySelectorComponent } from './components/key-selector/key-selector.com
   imports: [
     CommonModule,
     FormsModule,
-    NotificationComponent,
-    AppBarComponent,
-    SongHeroComponent,
-    SetlistPanelComponent,
-    LiveControlCenterComponent,
-    AnalyticsWidgetComponent,
-    BroadcastFeedComponent,
-    MusiciansWidgetComponent,
-    QuickNotesComponent,
-    KeySelectorComponent
+    RouterLink
   ],
   templateUrl: './songleader.component.html',
-  styleUrl: './songleader.component.css',
-  animations: [
-    trigger('panelExpand', [
-      transition(':enter', [
-        style({ height: 0, opacity: 0, transform: 'translateY(-8px)' }),
-        animate('300ms cubic-bezier(0.16, 1, 0.3, 1)', style({ height: '*', opacity: 1, transform: 'translateY(0)' }))
-      ]),
-      transition(':leave', [
-        style({ height: '*', opacity: 1, transform: 'translateY(0)' }),
-        animate('250ms cubic-bezier(0.16, 1, 0.3, 1)', style({ height: 0, opacity: 0, transform: 'translateY(-8px)' }))
-      ])
-    ])
-  ]
+  styleUrl: './songleader.component.css'
 })
 export class SongleaderComponent implements OnInit, OnDestroy {
-  // Enums for template
-  RecipientRole = RecipientRole;
-  MessageType = MessageType;
+  readonly keys = [...MUSICAL_KEYS];
 
-  // Signals for reactive state
-  songs = signal<Song[]>([]);
-  filteredSongs = signal<Song[]>([]);
-  currentSongState = signal<CurrentSongState | null>(null);
-  currentSetlist = signal<Setlist | null>(null);
-  searchQuery = signal('');
-  theme = signal<'light' | 'dark'>('light');
-  showKeyPanel = signal(false);
-  showSongSetupModal = signal(false);
-  broadcastingCommand = signal<string | null>(null);
-  quickNotes = signal('');
-  messageHistory = signal<Message[]>([]);
-
-  // New song form
-  newSong = signal<{ title: string; key: string; structure: string }>({
-    title: '',
-    key: 'C',
-    structure: ''
-  });
-
-  allKeys = signal(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']);
-
-  // Computed derived state
-  currentKey = computed(() => this.currentSongState()?.currentKey || 'C');
-  currentTempo = computed(() => this.currentSongState()?.tempo || 100);
-  setlistSongs = computed(() => this.currentSetlist()?.songs || []);
-
-  songsPlayed = computed(() => {
-    const songs = this.setlistSongs();
-    const currentId = this.currentSongState()?.song?.id;
-    const currentIndex = songs.findIndex(s => s.id === currentId);
-    return currentIndex >= 0 ? currentIndex + 1 : 0;
-  });
-
-  songsRemaining = computed(() => {
-    const songs = this.setlistSongs();
-    const currentId = this.currentSongState()?.song?.id;
-    const currentIndex = songs.findIndex(s => s.id === currentId);
-    return currentIndex >= 0 ? Math.max(0, songs.length - currentIndex - 1) : songs.length;
-  });
-
-  averageTempo = computed(() => {
-    const songs = this.setlistSongs();
-    if (songs.length === 0) return this.currentTempo();
-    const total = songs.reduce((sum, s) => sum + s.tempo, 0);
-    return Math.round(total / songs.length);
-  });
-
-  messagesSent = computed(() => this.messageHistory().length);
-
-  // Mock connected musicians
-  musicians: Musician[] = [
-    { name: 'Elvis Akello', role: 'Drummer', instrument: 'Drums', online: true },
-    { name: 'James Makumi', role: 'Bassist', instrument: 'Bass', online: true },
-    { name: 'Joel Njoroge', role: 'Keys', instrument: 'Keys', online: true },
-    { name: 'Nadai Mumo', role: 'BGV Leader', instrument: 'Vocals', online: true },
-    { name: 'Billy Paul', role: 'Lead', instrument: 'Lead Guitar', online: true },
-    { name: 'Caleb Karisa', role: 'Acoustic', instrument: 'Acoustic Guitar', online: true }
+  readonly recipients = [
+    {
+      value: RecipientRole.MUSICIAN,
+      label: 'Musicians'
+    },
+    {
+      value: RecipientRole.PIANIST,
+      label: 'Pianist'
+    },
+    {
+      value: RecipientRole.SOUND_TEAM,
+      label: 'Sound team'
+    },
+    {
+      value: RecipientRole.DEACON,
+      label: 'Deacon'
+    },
+    {
+      value: RecipientRole.ALL,
+      label: 'Everyone'
+    }
   ];
 
-  private subscriptions: Subscription = new Subscription();
+  // These predefined musical cues target the musicians display.
+  readonly cues = [
+    'FASTER',
+    'SLOWER',
+    'BUILD',
+    'BREAK IT DOWN',
+    'HOLD',
+    'REPEAT',
+    'STOP',
+    'END',
+    'DRUMS ONLY',
+    'KEYS ONLY',
+    'STRINGS ONLY',
+    'VOICES ONLY',
+    'COME IN',
+    'DROP OUT'
+  ];
+
+  state: CurrentSongState | null = null;
+
+  broadcast: Setlist | null = null;
+  broadcastId: string | null = null;
+  nextSong: SetlistSong | null = null;
+
+  customText = '';
+
+  customRecipients: RecipientRole[] = [
+    RecipientRole.MUSICIAN
+  ];
+
+  incoming: Message | null = null;
+  recent: Message[] = [];
+
+  // Brief feedback identifying the last pressed cue button.
+  activeCue = '';
+
+  endSeconds = 30;
+  remaining: number | null = null;
+
+  private readonly subscriptions = new Subscription();
+
+  private cueTimer?: ReturnType<typeof setTimeout>;
+  private incomingTimer?: ReturnType<typeof setTimeout>;
+  private countdownTimer?: ReturnType<typeof setInterval>;
 
   constructor(
-    private router: Router,
-    private messageService: MessageService,
-    private songService: SongService,
-    protected notificationService: NotificationService
+    private messages: MessageService,
+    public songs: SongService,
+    public realtime: RealtimeSyncService
   ) {}
 
   ngOnInit(): void {
-    // Load songs
+    this.watchLiveState();
+    this.watchIncomingMessages();
+
     this.subscriptions.add(
-      this.songService.songs$.subscribe(songs => {
-        this.songs.set(songs);
-        this.filteredSongs.set(songs);
+      this.songs.endingAt$.subscribe(() => {
+        this.updateCountdown();
       })
     );
 
-    // Current song state
-    this.subscriptions.add(
-      this.messageService.currentSong$.subscribe(state => {
-        this.currentSongState.set(state);
-      })
-    );
-
-    // Setlist updates
-    this.subscriptions.add(
-      this.songService.setlist$.subscribe(setlist => {
-        this.currentSetlist.set(setlist);
-      })
-    );
-
-    // Subscribe to search results
-    this.subscriptions.add(
-      this.songService.searchResults$.subscribe(results => {
-        this.filteredSongs.set(results);
-      })
-    );
-
-    // Subscribe to messages
-    this.subscriptions.add(
-      this.messageService.getMessagesForRole(RecipientRole.SONG_LEADER).subscribe(message => {
-        this.notificationService.createNotificationFromMessage(message);
-        this.messageHistory.update(history => [...history, message]);
-      })
-    );
-
-    // Theme initialization
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const initialTheme = savedTheme === 'dark' ? 'dark' : 'light';
-    this.theme.set(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+    // This component only displays the countdown.
+    // AppComponent handles completing it and returning Home.
+    this.countdownTimer = setInterval(() => {
+      this.updateCountdown();
+    }, 250);
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
+    }
+
+    if (this.incomingTimer) {
+      clearTimeout(this.incomingTimer);
+    }
+
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+    }
   }
 
-  // Theme
-  toggleTheme(): void {
-    const next = this.theme() === 'light' ? 'dark' : 'light';
-    this.theme.set(next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-    try { localStorage.setItem('theme', next); } catch {}
+  // --------------------------------------------------
+  // Current broadcast state
+  // --------------------------------------------------
+
+  private watchLiveState(): void {
+    this.subscriptions.add(
+      combineLatest([
+        this.messages.currentSong$,
+        this.songs.broadcastSetlist$,
+        this.songs.broadcastSetlistId$
+      ]).subscribe(([state, setlist, broadcastId]) => {
+        this.state = state;
+
+        this.broadcast = setlist.id
+          ? setlist
+          : null;
+
+        this.broadcastId = broadcastId;
+        this.nextSong = this.songs.getNextSong();
+      })
+    );
   }
 
-  // Search
-  onSearchQueryChange(query: string): void {
-    this.searchQuery.set(query);
-    this.songService.searchSongs(query);
+  // --------------------------------------------------
+  // Persistent key controls
+  // --------------------------------------------------
+
+  setKey(key: string): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.setDirectKey(key);
   }
 
-  // Song selection
-  selectSong(song: Song): void {
-    this.songService.selectCurrentSong(song.id);
+  transpose(step: -1 | 1): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.transposeCurrent(step);
   }
 
-  // Setlist management
-  addToSetlist(song: Song): void {
-    this.songService.addToActiveSetlist(song.id);
-    this.notificationService.showNotification(`Added ${song.title} to setlist`, 'resolved');
+  askKey(): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    // Updates the persistent key and emits one key-change cue.
+    // The musicians display will render "?" as "WHAT KEY?".
+    this.songs.setDirectKey('?');
   }
 
-  removeFromSetlist(song: Song): void {
-    this.songService.removeFromActiveSetlist(song.id);
-    this.notificationService.showNotification('Song removed from setlist', 'info');
+  // --------------------------------------------------
+  // Song navigation
+  // --------------------------------------------------
+
+  previous(): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.previousEntry();
   }
 
-  onReorderSetlist(songs: Song[]): void {
-    this.songService.reorderActiveSetlist(songs.map(s => s.id));
-    this.notificationService.showNotification('Setlist reordered', 'info');
+  next(): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.nextEntry();
   }
 
-  broadcastSong(song: Song): void {
-    this.selectSong(song);
-    this.messageService.sendMessage({
-      type: MessageType.GENERAL_COMMUNICATION,
-      content: { text: `Now playing: ${song.title} in ${this.currentSongState()?.currentKey || song.keys[0]}` },
+  selectSong(song: SetlistSong): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.selectEntry(song.entryId);
+  }
+
+  setUpNext(entryId: string | null): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.setNext(entryId);
+  }
+
+  adhoc(): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    // Clears song, section and up-next information.
+    // The persistent current key is retained.
+    this.songs.setBroadcastSetlist(null);
+  }
+
+  // --------------------------------------------------
+  // Temporary musical cues
+  // --------------------------------------------------
+
+  cue(text: string): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    const isTempoCue =
+      text === 'FASTER' ||
+      text === 'SLOWER';
+
+    this.messages.sendMessage({
+      type: isTempoCue
+        ? MessageType.TEMPO_CHANGE
+        : MessageType.MUSICAL_INSTRUCTION,
+
+      content: isTempoCue
+        ? { direction: text.toLowerCase() }
+        : { instruction: text },
+
       sender: RecipientRole.SONG_LEADER,
-      recipients: [RecipientRole.MUSICIAN, RecipientRole.SOUND_TEAM]
+      recipients: [RecipientRole.MUSICIAN]
     });
-    this.notificationService.showNotification(`Broadcasting: ${song.title}`, 'cue');
-  }
 
-  broadcastCurrentSong(): void {
-    const song = this.currentSongState()?.song;
-    if (song) {
-      this.broadcastSong(song);
+    this.activeCue = text;
+
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
     }
+
+    // This timer controls button feedback only.
+    // The receiving screen controls the four-second cue display.
+    this.cueTimer = setTimeout(() => {
+      this.activeCue = '';
+    }, 900);
   }
 
-  broadcastSetlist(): void {
-    const setlist = this.currentSetlist();
-    if (setlist) {
-      this.songService.setBroadcastSetlist(setlist.id);
-      this.notificationService.showNotification('Setlist broadcasted to team', 'cue');
+  // --------------------------------------------------
+  // Custom messages
+  // --------------------------------------------------
+
+  sendCustom(): void {
+    const text = this.customText.trim();
+
+    if (
+      !this.realtime.canSend ||
+      !text ||
+      !this.customRecipients.length
+    ) {
+      return;
     }
-  }
 
-  // Key selection
-  selectKey(key: string): void {
-    this.messageService.updateCurrentSong({ currentKey: key });
-    this.showKeyPanel.set(false);
-  }
+    // "Everyone" already includes all individual roles.
+    const recipients = this.customRecipients.includes(
+      RecipientRole.ALL
+    )
+      ? [RecipientRole.ALL]
+      : [...new Set(this.customRecipients)];
 
-  toggleKeyPanel(): void {
-    this.showKeyPanel.update(v => !v);
-  }
-
-  transposeKey(step: number): void {
-    const state = this.currentSongState();
-    if (!state) return;
-    const keys = this.allKeys();
-    const currentIndex = keys.indexOf(state.currentKey);
-    if (currentIndex === -1) return;
-    const newIndex = (currentIndex + step + keys.length) % keys.length;
-    this.messageService.updateCurrentSong({ currentKey: keys[newIndex] });
-  }
-
-  // Tempo
-  adjustTempo(direction: 'faster' | 'slower'): void {
-    const state = this.currentSongState();
-    if (!state) return;
-    const step = 5;
-    const newTempo = direction === 'faster'
-      ? state.tempo + step
-      : Math.max(10, state.tempo - step);
-    if (newTempo !== state.tempo) {
-      this.messageService.updateCurrentSong({ tempo: newTempo });
-    }
-  }
-
-  setTempo(tempo: number): void {
-    const state = this.currentSongState();
-    if (!state) return;
-    const clamped = Math.max(40, Math.min(240, tempo));
-    if (clamped !== state.tempo) {
-      this.messageService.updateCurrentSong({ tempo: clamped });
-    }
-  }
-
-  // Musical instruction with broadcasting feedback
-  sendMusicalInstruction(instruction: string): void {
-    this.broadcastingCommand.set(instruction);
-    this.messageService.sendMessage({
-      type: MessageType.MUSICAL_INSTRUCTION,
-      content: { instruction },
+    this.messages.sendMessage({
+      type: MessageType.CUSTOM_MESSAGE,
+      content: { text },
       sender: RecipientRole.SONG_LEADER,
-      recipients: [RecipientRole.MUSICIAN, RecipientRole.PIANIST]
-    });
-    this.notificationService.showNotification(`Broadcast: ${instruction}`, 'cue');
-    setTimeout(() => this.broadcastingCommand.set(null), 1500);
-  }
-
-  // Song setup modal
-  openSongSetupModal(): void {
-    this.newSong.set({ title: '', key: 'C', structure: '' });
-    this.showSongSetupModal.set(true);
-  }
-
-  closeSongSetupModal(): void {
-    this.showSongSetupModal.set(false);
-  }
-
-  setNewSongTitle(event: Event | undefined): void {
-    if (!event) return;
-    const value = (event.target as HTMLInputElement).value;
-    this.newSong.update(s => ({ ...s, title: value }));
-  }
-
-  setNewSongKey(key: string): void {
-    this.newSong.update(s => ({ ...s, key }));
-  }
-
-  setNewSongStructure(event: Event | undefined): void {
-    if (!event) return;
-    const value = (event.target as HTMLInputElement).value;
-    this.newSong.update(s => ({ ...s, structure: value }));
-  }
-
-  saveSong(): void {
-    const song = this.newSong();
-    if (!song.title.trim()) return;
-
-    const structureArray = song.structure
-      .split(',')
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-
-    const created = this.songService.addSong({
-      title: song.title,
-      keys: [song.key],
-      tempo: 100,
-      structure: structureArray.length > 0 ? structureArray : ['Verse', 'Chorus']
+      recipients
     });
 
-    if (created && created.id != null) {
-      this.songService.addToActiveSetlist(created.id);
-      this.notificationService.showNotification('Song created and added to setlist', 'resolved');
-    } else {
-      this.notificationService.showNotification('Song created successfully', 'resolved');
+    this.customText = '';
+  }
+
+  // --------------------------------------------------
+  // Incoming communication
+  // --------------------------------------------------
+
+  private watchIncomingMessages(): void {
+    this.subscriptions.add(
+      this.messages
+        .getMessagesForRole(RecipientRole.SONG_LEADER)
+        .subscribe(message => {
+          // Do not display our own outgoing cues as incoming alerts.
+          if (message.sender === RecipientRole.SONG_LEADER) {
+            return;
+          }
+
+          if (this.incomingTimer) {
+            clearTimeout(this.incomingTimer);
+          }
+
+          this.incoming = message;
+
+          this.recent = [
+            message,
+            ...this.recent
+          ].slice(0, 5);
+
+          const expiresAt =
+            message.expiresAt ?? Date.now() + 4000;
+
+          const remainingDuration = Math.max(
+            0,
+            Math.min(4000, expiresAt - Date.now())
+          );
+
+          this.incomingTimer = setTimeout(() => {
+            this.incoming = null;
+          }, remainingDuration);
+        })
+    );
+  }
+
+  messageText(message: Message): string {
+    const content = message.content;
+
+    if (content.key) {
+      return content.key === '?'
+        ? 'WHAT KEY?'
+        : `KEY: ${content.key}`;
     }
 
-    this.closeSongSetupModal();
+    if (content.direction) {
+      return String(content.direction).toUpperCase();
+    }
+
+    return (
+      content.text ||
+      content.instruction ||
+      content.request ||
+      ''
+    );
   }
 
-  onNotesChange(notes: string): void {
-    this.quickNotes.set(notes);
+  // --------------------------------------------------
+  // Closing the service
+  // --------------------------------------------------
+
+  endService(): void {
+    if (
+      !this.realtime.canSend ||
+      this.songs.endingAt$.value !== null
+    ) {
+      return;
+    }
+
+    const seconds = Number(this.endSeconds);
+
+    if (
+      !Number.isFinite(seconds) ||
+      seconds < 1 ||
+      seconds > 600
+    ) {
+      return;
+    }
+
+    this.cue(
+      'Play groove at your discretion until done'
+    );
+
+    this.songs.startEnding(seconds);
+  }
+
+  cancelEnding(): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.songs.cancelEnding();
+  }
+
+  private updateCountdown(): void {
+    const endingAt = this.songs.endingAt$.value;
+
+    this.remaining = endingAt === null
+      ? null
+      : Math.max(
+        0,
+        Math.ceil((endingAt - Date.now()) / 1000)
+      );
+  }
+
+  toggleRecipient(role: RecipientRole): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    if (role === RecipientRole.ALL) {
+      this.customRecipients = this.customRecipients.includes(
+        RecipientRole.ALL
+      )
+        ? []
+        : [RecipientRole.ALL];
+
+      return;
+    }
+
+    // Selecting an individual role clears "Everyone".
+    const selected = this.customRecipients.filter(
+      recipient => recipient !== RecipientRole.ALL
+    );
+
+    this.customRecipients = selected.includes(role)
+      ? selected.filter(recipient => recipient !== role)
+      : [...selected, role];
   }
 }

@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "emulators": "node scripts/start-emulator.mjs",
+    "test:services": "esbuild tests/service-regression.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/service-regression.mjs && node tests/service-regression.mjs"
   },
   "private": true,
   "dependencies": {
@@ -20,16 +22,18 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
+    "firebase": "^12.18.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.0.6",
-    "@angular/cli": "^21.2.9",
+    "@angular/cli": "^19.2.27",
     "@angular/compiler-cli": "^19.0.0",
     "@types/jasmine": "~5.1.0",
     "autoprefixer": "^10.4.20",
+    "firebase-tools": "^14.12.0",
     "jasmine-core": "~5.4.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

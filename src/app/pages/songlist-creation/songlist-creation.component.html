@@ -1,1 +1,451 @@
-<p>songlist-creation works!</p>
+<fieldset
+  class="setlists-page"
+  [disabled]="!realtime.canSend || saving"
+>
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Preparation</span>
+      <h1>Setlists</h1>
+      <p>Prepare the songs and service flow, then broadcast.</p>
+    </div>
+
+    <a
+      routerLink="/song-leader"
+      queryParamsHandling="preserve"
+      class="live-link"
+    >
+      Open live controls
+      <span class="material-icons" aria-hidden="true">
+        arrow_forward
+      </span>
+    </a>
+  </header>
+
+  <div class="workspace">
+    <aside class="setlist-sidebar">
+      <form
+        class="create-box"
+        (ngSubmit)="createSetlist()"
+      >
+        <label for="new-setlist-title">New setlist</label>
+
+        <input
+          id="new-setlist-title"
+          name="newTitle"
+          [(ngModel)]="newTitle"
+          placeholder="e.g. Sunday Worship"
+          required
+        />
+
+        <button
+          type="submit"
+          [disabled]="!newTitle.trim()"
+        >
+          Create for today
+        </button>
+      </form>
+
+      <div class="setlist-list">
+        <button
+          *ngFor="let setlist of setlists; trackBy: trackSetlist"
+          type="button"
+          [class.selected]="active?.id === setlist.id"
+          (click)="select(setlist)"
+        >
+          <span>
+            <strong>{{ setlist.name }}</strong>
+
+            <small>
+              {{ setlist.date | date:'EEE, d MMM y' }}
+              · {{ setlist.songs.length }} songs
+            </small>
+          </span>
+
+          <i *ngIf="broadcastId === setlist.id">LIVE</i>
+        </button>
+
+        <p *ngIf="!setlists.length" class="empty">
+          No setlists yet. Create your first one above.
+        </p>
+      </div>
+    </aside>
+
+    <main
+      *ngIf="active as selected; else chooseSetlist"
+      class="editor"
+    >
+      <section class="editor-head">
+        <div class="details">
+          <label>
+            Setlist title
+
+            <input
+              class="title-input"
+              [(ngModel)]="selected.name"
+              (blur)="saveDetails()"
+              aria-label="Setlist title"
+            />
+          </label>
+
+          <label>
+            Service date
+
+            <input
+              type="date"
+              [value]="selected.date | date:'yyyy-MM-dd'"
+              (change)="updateDate($event)"
+              aria-label="Service date"
+            />
+          </label>
+        </div>
+
+        <div class="head-actions">
+          <span
+            *ngIf="broadcastId === selected.id"
+            class="live-badge"
+          >
+            Broadcasting
+          </span>
+
+          <button
+            type="button"
+            (click)="save()"
+            [disabled]="!selected.name.trim()"
+          >
+            Save setlist
+          </button>
+
+          <button
+            type="button"
+            class="broadcast"
+            [disabled]="
+              !selected.songs.length ||
+              !selected.name.trim() ||
+              editingEntry !== null
+            "
+            (click)="broadcast()"
+          >
+            {{
+              broadcastId === selected.id
+                ? 'Apply live changes'
+                : 'Broadcast setlist'
+            }}
+          </button>
+
+          <button
+            type="button"
+            class="danger-ghost"
+            (click)="deleteSetlist()"
+          >
+            Delete
+          </button>
+        </div>
+
+        <p *ngIf="notice" class="notice" role="status">
+          {{ notice }}
+        </p>
+
+        <p
+          *ngIf="broadcastId === selected.id"
+          class="editing-hint"
+        >
+          Structural edits stay in the draft until you select
+          Apply live changes. Existing live keys are preserved.
+        </p>
+      </section>
+
+      <!-- Existing song editor -->
+      <section
+        *ngIf="editingEntry"
+        class="section-card edit-song-card"
+      >
+        <h2>Edit song</h2>
+
+        <form
+          class="song-form"
+          (ngSubmit)="saveSongEdit()"
+        >
+          <label>
+            Song title
+
+            <input
+              name="editTitle"
+              [(ngModel)]="editDraft.title"
+              required
+            />
+          </label>
+
+          <label>
+            Key
+
+            <select
+              name="editKey"
+              [(ngModel)]="editDraft.key"
+              [disabled]="editingLiveEntry"
+            >
+              <option *ngFor="let key of keys" [value]="key">
+                {{ key }}
+              </option>
+            </select>
+          </label>
+
+          <label class="wide">
+            Structure
+
+            <input
+              name="editStructure"
+              [(ngModel)]="editDraft.structure"
+              placeholder="Verse, Chorus, Bridge"
+            />
+          </label>
+
+          <label class="wide">
+            Notes for musicians
+
+            <textarea
+              name="editNotes"
+              [(ngModel)]="editDraft.notes"
+              rows="3"
+            ></textarea>
+          </label>
+
+          <p *ngIf="editingLiveEntry" class="wide editing-hint">
+            Change this song’s live key from the Live screen.
+          </p>
+
+          <div class="form-actions wide">
+            <button
+              type="submit"
+              [disabled]="!editDraft.title.trim()"
+            >
+              Save song changes
+            </button>
+
+            <button
+              type="button"
+              (click)="cancelSongEdit()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Ordered section containers -->
+      <section
+        *ngFor="
+          let section of selected.sections;
+          let sectionIndex = index;
+          trackBy: trackSection
+        "
+        class="section-card"
+      >
+        <div class="section-title">
+          <span class="section-number">
+            {{ sectionIndex + 1 }}
+          </span>
+
+          <input
+            [value]="section.name"
+            (change)="renameSection(section, $event)"
+            aria-label="Section name"
+          />
+
+          <div class="section-actions">
+            <button
+              type="button"
+              aria-label="Move section up"
+              [disabled]="sectionIndex === 0"
+              (click)="moveSection(section, -1)"
+            >
+              ↑
+            </button>
+
+            <button
+              type="button"
+              aria-label="Move section down"
+              [disabled]="
+                sectionIndex === selected.sections.length - 1
+              "
+              (click)="moveSection(section, 1)"
+            >
+              ↓
+            </button>
+
+            <button
+              type="button"
+              class="remove"
+              aria-label="Remove section"
+              (click)="removeSection(section)"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div class="songs">
+          <article
+            *ngFor="
+              let song of section.songs;
+              let songIndex = index;
+              trackBy: trackSong
+            "
+            class="song-row"
+          >
+            <span class="order">{{ songIndex + 1 }}</span>
+
+            <div class="song-copy">
+              <strong>{{ song.title }}</strong>
+
+              <small *ngIf="song.structure.length">
+                {{ song.structure.join(' · ') }}
+              </small>
+
+              <p *ngIf="song.notes">{{ song.notes }}</p>
+            </div>
+
+            <span class="key">{{ song.liveKey }}</span>
+
+            <div class="row-actions">
+              <button
+                type="button"
+                (click)="editSong(song)"
+                [attr.aria-label]="'Edit ' + song.title"
+              >
+                Edit
+              </button>
+
+              <select
+                aria-label="Move song to section"
+                [ngModel]="section.id"
+                (ngModelChange)="moveTo(song.entryId, $event)"
+              >
+                <option
+                  *ngFor="let target of selected.sections"
+                  [value]="target.id"
+                >
+                  {{ target.name }}
+                </option>
+              </select>
+
+              <button
+                type="button"
+                aria-label="Move song up"
+                [disabled]="songIndex === 0"
+                (click)="moveSong(section, song.entryId, -1)"
+              >
+                ↑
+              </button>
+
+              <button
+                type="button"
+                aria-label="Move song down"
+                [disabled]="songIndex === section.songs.length - 1"
+                (click)="moveSong(section, song.entryId, 1)"
+              >
+                ↓
+              </button>
+
+              <button
+                type="button"
+                class="remove"
+                aria-label="Remove song"
+                (click)="removeSong(song.entryId)"
+              >
+                ×
+              </button>
+            </div>
+          </article>
+
+          <p *ngIf="!section.songs.length" class="empty">
+            Add the first song in this section below.
+          </p>
+        </div>
+
+        <!-- New song within this section -->
+        <form
+          class="song-form"
+          (ngSubmit)="addSong(section)"
+        >
+          <label>
+            Song title
+
+            <input
+              [(ngModel)]="draft(section.id).title"
+              name="title"
+              placeholder="Enter song title"
+              required
+            />
+          </label>
+
+          <label>
+            Key
+
+            <select
+              [(ngModel)]="draft(section.id).key"
+              name="key"
+            >
+              <option *ngFor="let key of keys" [value]="key">
+                {{ key }}
+              </option>
+            </select>
+          </label>
+
+          <label class="wide">
+            Structure
+
+            <input
+              [(ngModel)]="draft(section.id).structure"
+              name="structure"
+              placeholder="Verse, Chorus, Bridge"
+            />
+          </label>
+
+          <label class="wide">
+            Notes for musicians
+
+            <textarea
+              [(ngModel)]="draft(section.id).notes"
+              name="notes"
+              rows="2"
+              placeholder="e.g. Start with piano"
+            ></textarea>
+          </label>
+
+          <button
+            type="submit"
+            [disabled]="!draft(section.id).title.trim()"
+          >
+            Add song
+          </button>
+        </form>
+      </section>
+
+      <form
+        class="add-section"
+        (ngSubmit)="addSection()"
+      >
+        <input
+          [(ngModel)]="newSectionName"
+          name="sectionName"
+          aria-label="New section name"
+          placeholder="Worship, Praise, Devotion, Special…"
+        />
+
+        <button
+          type="submit"
+          [disabled]="!newSectionName.trim()"
+        >
+          Add section
+        </button>
+      </form>
+    </main>
+
+    <ng-template #chooseSetlist>
+      <main class="editor empty-editor">
+        <h2>Select or create a setlist</h2>
+        <p>Your sections and songs will appear here.</p>
+      </main>
+    </ng-template>
+  </div>
+</fieldset>

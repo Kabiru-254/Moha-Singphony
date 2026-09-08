@@ -1,336 +1,1003 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Song, MessageService } from './message.service';
+import { BehaviorSubject, Subject } from 'rxjs';
+
+import {
+  CurrentSongState,
+  MessageService,
+  Song
+} from './message.service';
+
+export const MUSICAL_KEYS = [
+  'C', 'C#', 'D', 'D#', 'E', 'F',
+  'F#', 'G', 'G#', 'A', 'Bb', 'B'
+] as const;
+
+export interface SetlistSong extends Song {
+  // Identifies this particular occurrence of a song.
+  entryId: string;
+
+  plannedKey: string;
+  liveKey: string;
+}
+
+export interface SetlistSection {
+  id: string;
+  name: string;
+  songs: SetlistSong[];
+}
 
 export interface Setlist {
-  id: string; // unique id (string for easier Firebase map keys)
+  id: string;
   name: string;
-  songs: Song[];
-  date: Date; // local Date in app; serialize to ISO for network
-  lastUpdated?: number; // epoch millis for conflict resolution (optional)
-  // Optional per-song overrides for this setlist
-  overrides?: { [songId: number]: { key?: string } };
+  date: Date;
+  sections: SetlistSection[];
+
+  // Flattened section songs, in their playing order.
+  songs: SetlistSong[];
+
+  lastUpdated?: number;
+}
+
+export interface LiveServiceSnapshot {
+  setlist: Setlist;
+  current: CurrentSongState;
+  nextOverride: string | null;
+  endingAt: number | null;
+  ended: boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class SongService {
-  // Mock database of songs
-  private songs: Song[] = [
-    {
-      id: 1,
-      title: 'Amazing Grace',
-      keys: ['C', 'D', 'E', 'F', 'G', 'A'],
-      tempo: 100,
-      structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Bridge', 'Chorus'],
-      notes: 'Traditional arrangement'
-    },
-    {
-      id: 2,
-      title: 'How Great Thou Art',
-      keys: ['C', 'D', 'E', 'G'],
-      tempo: 100,
-      structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
-      notes: 'Emphasize dynamics on chorus'
-    },
-    {
-      id: 3,
-      title: 'Great Is Thy Faithfulness',
-      keys: ['D', 'E', 'F', 'G'],
-      tempo: 80,
-      structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
-      notes: 'Gentle intro, build on chorus'
-    },
-    {
-      id: 4,
-      title: 'Blessed Assurance',
-      keys: ['C', 'D', 'E', 'F', 'G'],
-      tempo: 100,
-      structure: ['Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Verse 3', 'Chorus'],
-      notes: 'Joyful throughout'
-    },
-    {
-      id: 5,
-      title: 'Holy Spirit',
-      keys: ['D', 'E', 'F'],
-      tempo: 80,
-      structure: ['Intro', 'Verse 1', 'Chorus', 'Verse 2', 'Chorus', 'Bridge', 'Chorus'],
-      notes: 'Start soft, build through bridge'
-    }
-  ];
+  private readonly setlistsSubject =
+    new BehaviorSubject<Record<string, Setlist>>({});
 
-  // Multiple setlists state
-  private setlistsSubject = new BehaviorSubject<Record<string, Setlist>>({});
-  private activeSetlistIdSubject = new BehaviorSubject<string | null>(null);
-  private activeSetlistSubject = new BehaviorSubject<Setlist>({ id: 'default', name: 'Default', songs: [], date: new Date() });
-  private broadcastSetlistIdSubject = new BehaviorSubject<string | null>(null);
-  private broadcastSetlistSubject = new BehaviorSubject<Setlist>({ id: 'default', name: 'Default', songs: [], date: new Date() });
+  private readonly activeSetlistIdSubject =
+    new BehaviorSubject<string | null>(null);
 
-  // Local-only outbound streams for realtime publish
-  private setlistsLocalSubject = new BehaviorSubject<Record<string, Setlist>>({});
-  private activeSetlistLocalSubject = new BehaviorSubject<string | null>(null);
-  private broadcastSetlistLocalSubject = new BehaviorSubject<string | null>(null);
+  private readonly activeSetlistSubject =
+    new BehaviorSubject<Setlist>(this.emptySetlist());
 
-  // Other subjects
-  private songsSubject = new BehaviorSubject<Song[]>(this.songs);
-  private searchResultsSubject = new BehaviorSubject<Song[]>([]);
+  private readonly broadcastSetlistIdSubject =
+    new BehaviorSubject<string | null>(null);
 
-  // Observables
-  public songs$ = this.songsSubject.asObservable();
-  public setlists$ = this.setlistsSubject.asObservable();
-  public activeSetlistId$ = this.activeSetlistIdSubject.asObservable();
-  public broadcastSetlistId$ = this.broadcastSetlistIdSubject.asObservable();
-  // Keep old name for backward compatibility: current active setlist
-  public setlist$ = this.activeSetlistSubject.asObservable();
-  public broadcastSetlist$ = this.broadcastSetlistSubject.asObservable();
-  public searchResults$ = this.searchResultsSubject.asObservable();
-  public setlistsLocal$ = this.setlistsLocalSubject.asObservable();
-  public activeSetlistLocal$ = this.activeSetlistLocalSubject.asObservable();
-  public broadcastSetlistLocal$ = this.broadcastSetlistLocalSubject.asObservable();
+  private readonly broadcastSetlistSubject =
+    new BehaviorSubject<Setlist>(this.emptySetlist());
+
+  // Subjects deliberately have no initial value.
+  // Opening a screen must not publish empty defaults to Firebase.
+  private readonly setlistsLocalSubject =
+    new Subject<Record<string, Setlist>>();
+
+  private readonly activeSetlistLocalSubject =
+    new Subject<string | null>();
+
+  private readonly broadcastSetlistLocalSubject =
+    new Subject<string | null>();
+
+  readonly liveLocal$ = new Subject<void>();
+
+  readonly endingAt$ =
+    new BehaviorSubject<number | null>(null);
+
+  readonly ended$ =
+    new BehaviorSubject<boolean>(false);
+
+  readonly setlists$ = this.setlistsSubject.asObservable();
+
+  readonly activeSetlistId$ =
+    this.activeSetlistIdSubject.asObservable();
+
+  readonly broadcastSetlistId$ =
+    this.broadcastSetlistIdSubject.asObservable();
+
+  readonly setlist$ =
+    this.activeSetlistSubject.asObservable();
+
+  readonly broadcastSetlist$ =
+    this.broadcastSetlistSubject.asObservable();
+
+  readonly setlistsLocal$ =
+    this.setlistsLocalSubject.asObservable();
+
+  // Retained while we replace the existing Firebase transport.
+  readonly activeSetlistLocal$ =
+    this.activeSetlistLocalSubject.asObservable();
+
+  readonly broadcastSetlistLocal$ =
+    this.broadcastSetlistLocalSubject.asObservable();
+
+  nextOverride: string | null = null;
 
   constructor(private messageService: MessageService) {
-    // Bootstrap with a default empty setlist for today so UI has something to work with
-    const defaultId = this.createSetlist({ name: 'Sunday Service', date: new Date() }, /*silent*/ true);
-    this.setActiveSetlist(defaultId, /*silent*/ true);
+    this.messageService.currentSongLocal$.subscribe(() => {
+      this.liveLocal$.next();
+    });
   }
 
-  // ---------- Helpers ----------
-  private generateSetlistId(): string {
-    return 'sl_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  // --------------------------------------------------
+  // State exchanged with Firebase
+  // --------------------------------------------------
+
+  snapshot(): LiveServiceSnapshot {
+    return {
+      setlist: this.broadcastSetlistSubject.value,
+      current: this.currentState(),
+      nextOverride: this.nextOverride,
+      endingAt: this.endingAt$.value,
+      ended: this.ended$.value
+    };
   }
 
-  private recomputeActiveSetlist(): void {
-    const id = this.activeSetlistIdSubject.getValue();
-    const map = this.setlistsSubject.getValue();
-    const active = id && map[id] ? map[id] : { id: 'default', name: 'Default', songs: [], date: new Date() };
-    this.activeSetlistSubject.next(active);
-  }
+  ingestLive(value: LiveServiceSnapshot | null): void {
+    const setlist = value?.setlist
+      ? this.normalize(value.setlist)
+      : this.emptySetlist();
 
-  private recomputeBroadcastSetlist(): void {
-    const id = this.broadcastSetlistIdSubject.getValue();
-    const map = this.setlistsSubject.getValue();
-    const broadcast = id && map[id] ? map[id] : { id: 'default', name: 'Default', songs: [], date: new Date() };
-    this.broadcastSetlistSubject.next(broadcast);
-  }
+    this.nextOverride = value?.nextOverride ?? null;
 
-  private emitLocals(): void {
-    // Emit the latest maps for realtime publishing (dates should be serialized by caller if needed)
-    this.setlistsLocalSubject.next(this.setlistsSubject.getValue());
-  }
+    this.broadcastSetlistIdSubject.next(setlist.id || null);
+    this.broadcastSetlistSubject.next(setlist);
 
-  // ---------- Songs catalog ----------
-  getAllSongs(): Observable<Song[]> { return this.songs$; }
+    this.endingAt$.next(value?.endingAt ?? null);
+    this.ended$.next(value?.ended ?? false);
 
-  getSongById(id: number): Song | undefined { return this.songs.find(song => song.id === id); }
-
-  addSong(song: Omit<Song, 'id'>): Song {
-    const newSong: Song = { ...song, id: this.generateSongId() };
-    this.songs = [...this.songs, newSong];
-    this.songsSubject.next(this.songs);
-    return newSong;
-  }
-
-  updateSong(updatedSong: Song): void {
-    this.songs = this.songs.map(s => s.id === updatedSong.id ? updatedSong : s);
-    this.songsSubject.next(this.songs);
-    // Also update any setlist entries referencing this song
-    const map = { ...this.setlistsSubject.getValue() };
-    let touched = false;
-    Object.keys(map).forEach(id => {
-      const list = map[id];
-      const idx = list.songs.findIndex(s => s.id === updatedSong.id);
-      if (idx !== -1) {
-        list.songs = list.songs.map(s => s.id === updatedSong.id ? updatedSong : s);
-        list.lastUpdated = Date.now();
-        touched = true;
+    this.messageService.setCurrentSongStateFromRemote(
+      value?.current ?? {
+        song: null,
+        currentKey: '?',
+        tempo: 0,
+        isPlaying: false
       }
+    );
+  }
+
+  setSetlistsFromRemote(
+    remoteMap: Record<string, Setlist>
+  ): void {
+    const normalized: Record<string, Setlist> = {};
+
+    Object.entries(remoteMap || {}).forEach(([id, value]) => {
+      normalized[id] = this.normalize(value);
     });
-    if (touched) {
-      this.setlistsSubject.next(map);
-      this.recomputeActiveSetlist();
-      this.emitLocals();
-    }
-  }
 
-  deleteSong(id: number): void {
-    this.songs = this.songs.filter(s => s.id !== id);
-    this.songsSubject.next(this.songs);
-    // Remove from all setlists
-    const map = { ...this.setlistsSubject.getValue() };
-    let touched = false;
-    Object.keys(map).forEach(key => {
-      const before = map[key].songs.length;
-      map[key].songs = map[key].songs.filter(s => s.id !== id);
-      if (map[key].songs.length !== before) {
-        map[key].lastUpdated = Date.now();
-        touched = true;
-      }
-    });
-    if (touched) {
-      this.setlistsSubject.next(map);
-      this.recomputeActiveSetlist();
-      this.emitLocals();
-    }
-  }
-
-  private generateSongId(): number {
-    return Math.max(0, ...this.songs.map(s => s.id)) + 1;
-  }
-
-  // ---------- Search ----------
-  searchSongs(query: string): void {
-    if (!query.trim()) { this.searchResultsSubject.next([]); return; }
-    const results = this.songs.filter(song => song.title.toLowerCase().includes(query.toLowerCase()));
-    this.searchResultsSubject.next(results);
-  }
-
-  // ---------- Setlists CRUD ----------
-  createSetlist(input: { name: string; date: Date }, silent: boolean = false): string {
-    const id = this.generateSetlistId();
-    const map = { ...this.setlistsSubject.getValue() };
-    map[id] = { id, name: input.name, songs: [], date: input.date, lastUpdated: Date.now(), overrides: {} };
-    this.setlistsSubject.next(map);
+    this.setlistsSubject.next(normalized);
     this.recomputeActiveSetlist();
-    this.recomputeBroadcastSetlist();
-    if (!silent) this.emitLocals();
-    return id;
-  }
-
-  updateSetlist(id: string, patch: Partial<Pick<Setlist, 'name' | 'date' | 'songs'>>): void {
-    const map = { ...this.setlistsSubject.getValue() };
-    if (!map[id]) return;
-    const next: Setlist = { ...map[id], ...patch, lastUpdated: Date.now() };
-    // Ensure date is Date
-    if (next.date && typeof (next.date as any) === 'string') {
-      next.date = new Date(next.date as any);
-    }
-    map[id] = next;
-    this.setlistsSubject.next(map);
-    this.recomputeActiveSetlist();
-    this.recomputeBroadcastSetlist();
-    this.emitLocals();
-  }
-
-  deleteSetlist(id: string): void {
-    const map = { ...this.setlistsSubject.getValue() };
-    if (!(id in map)) return;
-    delete map[id];
-    this.setlistsSubject.next(map);
-    if (this.activeSetlistIdSubject.getValue() === id) {
-      this.setActiveSetlist(null); // clears active if the one deleted was active
-    } else {
-      this.recomputeActiveSetlist();
-    }
-    this.emitLocals();
-  }
-
-  setActiveSetlist(id: string | null, silent: boolean = false): void {
-    this.activeSetlistIdSubject.next(id);
-    this.recomputeActiveSetlist();
-    if (!silent) this.activeSetlistLocalSubject.next(id);
-  }
-
-  setBroadcastSetlist(id: string | null, silent: boolean = false): void {
-    this.broadcastSetlistIdSubject.next(id);
-    this.recomputeBroadcastSetlist();
-    if (!silent) this.broadcastSetlistLocalSubject.next(id);
-  }
-
-  // Song operations on active setlist
-  addToActiveSetlist(songId: number): void {
-    const id = this.activeSetlistIdSubject.getValue();
-    if (!id) return;
-    const song = this.getSongById(songId);
-    const map = { ...this.setlistsSubject.getValue() };
-    if (song && map[id] && !map[id].songs.some(s => s.id === songId)) {
-      map[id] = { ...map[id], songs: [...map[id].songs, song], lastUpdated: Date.now() };
-      this.setlistsSubject.next(map);
-      this.recomputeActiveSetlist();
-      this.emitLocals();
-    }
-  }
-
-  removeFromActiveSetlist(songId: number): void {
-    const id = this.activeSetlistIdSubject.getValue();
-    if (!id) return;
-    const map = { ...this.setlistsSubject.getValue() };
-    if (map[id]) {
-      map[id] = { ...map[id], songs: map[id].songs.filter(s => s.id !== songId), lastUpdated: Date.now() };
-      this.setlistsSubject.next(map);
-      this.recomputeActiveSetlist();
-      this.emitLocals();
-    }
-  }
-
-  reorderActiveSetlist(songIds: number[]): void {
-    const id = this.activeSetlistIdSubject.getValue();
-    if (!id) return;
-    const map = { ...this.setlistsSubject.getValue() };
-    const list = map[id];
-    if (!list) return;
-    const ordered: Song[] = [];
-    songIds.forEach(sid => {
-      const s = list.songs.find(ss => ss.id === sid);
-      if (s) ordered.push(s);
-    });
-    map[id] = { ...list, songs: ordered, lastUpdated: Date.now() };
-    this.setlistsSubject.next(map);
-    this.recomputeActiveSetlist();
-    this.emitLocals();
-  }
-
-  // Per-song key override for active setlist
-  overrideKeyForActiveSetlist(songId: number, key: string): void {
-    const id = this.activeSetlistIdSubject.getValue();
-    if (!id) return;
-    const map = { ...this.setlistsSubject.getValue() };
-    const list = map[id];
-    if (!list) return;
-    const overrides = { ...(list.overrides || {}) };
-    overrides[songId] = { ...(overrides[songId] || {}), key };
-    map[id] = { ...list, overrides, lastUpdated: Date.now() };
-    this.setlistsSubject.next(map);
-    this.recomputeActiveSetlist();
-    this.recomputeBroadcastSetlist();
-    this.emitLocals();
-  }
-
-  // ---------- Remote ingestion (from realtime sync) ----------
-  setSetlistsFromRemote(remoteMap: Record<string, Setlist>): void {
-    // Coerce date strings to Date
-    Object.values(remoteMap || {}).forEach(s => {
-      if (s && typeof (s as any).date === 'string') {
-        s.date = new Date((s as any).date);
-      }
-    });
-    this.setlistsSubject.next(remoteMap || {});
-    this.recomputeActiveSetlist();
-    this.recomputeBroadcastSetlist();
   }
 
   setActiveSetlistFromRemote(id: string | null): void {
-    this.activeSetlistIdSubject.next(id);
-    this.recomputeActiveSetlist();
+    this.setActiveSetlist(id, true);
   }
 
   setBroadcastSetlistFromRemote(id: string | null): void {
-    this.broadcastSetlistIdSubject.next(id);
-    this.recomputeBroadcastSetlist();
+    this.setBroadcastSetlist(id, true);
   }
 
-  // ---------- Current song selection ----------
-  selectCurrentSong(songId: number, key: string = ''): void {
-    const song = this.getSongById(songId);
-    if (song) {
-      const selectedKey = key || song.keys[0] || 'C';
-      this.messageService.updateCurrentSong({
-        song,
-        currentKey: selectedKey,
-        tempo: song.tempo,
-        currentSection: song.structure[0],
-        isPlaying: true
+  // --------------------------------------------------
+  // Setlist management
+  // --------------------------------------------------
+
+  createSetlist(input: {
+    name: string;
+    date?: Date;
+  }): string {
+    const id = this.generateId('setlist');
+
+    const setlist = this.normalize({
+      id,
+      name: input.name.trim(),
+      date: input.date ?? new Date(),
+      sections: [],
+      songs: [],
+      lastUpdated: Date.now()
+    });
+
+    this.commit({
+      ...this.setlistsSubject.value,
+      [id]: setlist
+    });
+
+    this.setActiveSetlist(id);
+
+    return id;
+  }
+
+  updateSetlist(
+    id: string,
+    patch: Partial<Pick<Setlist, 'name' | 'date' | 'sections'>>
+  ): void {
+    const current = this.setlistsSubject.value[id];
+
+    if (!current) {
+      return;
+    }
+
+    const updated = this.normalize({
+      ...current,
+      ...patch,
+      lastUpdated: Date.now()
+    });
+
+    this.commit({
+      ...this.setlistsSubject.value,
+      [id]: updated
+    });
+  }
+
+  deleteSetlist(id: string): void {
+    const map = { ...this.setlistsSubject.value };
+
+    delete map[id];
+    this.commit(map);
+
+    if (this.activeSetlistIdSubject.value === id) {
+      this.setActiveSetlist(null);
+    }
+
+    if (this.broadcastSetlistIdSubject.value === id) {
+      this.setBroadcastSetlist(null);
+    }
+  }
+
+  setActiveSetlist(
+    id: string | null,
+    silent = false
+  ): void {
+    this.activeSetlistIdSubject.next(id);
+    this.recomputeActiveSetlist();
+
+    if (!silent) {
+      this.activeSetlistLocalSubject.next(id);
+    }
+  }
+
+  // --------------------------------------------------
+  // Broadcasting and applying structural edits
+  // --------------------------------------------------
+
+  setBroadcastSetlist(
+    id: string | null,
+    silent = false
+  ): void {
+    const draft = id
+      ? this.setlistsSubject.value[id]
+      : null;
+
+    // An empty setlist cannot be broadcast.
+    if (id && !draft?.songs.length) {
+      return;
+    }
+
+    const previous = this.broadcastSetlistSubject.value;
+
+    const applyingLiveChanges =
+      !!id && previous.id === id;
+
+    const existingLiveKeys = new Map(
+      previous.songs.map(song => [
+        song.entryId,
+        song.liveKey
+      ])
+    );
+
+    // Clone the draft so later edits cannot leak into the broadcast.
+    const next = draft
+      ? this.normalize(structuredClone(draft))
+      : this.emptySetlist();
+
+    if (applyingLiveChanges) {
+      next.sections.forEach(section => {
+        section.songs.forEach(song => {
+          // Preserve live keys when applying structural changes.
+          const liveKey = existingLiveKeys.get(song.entryId);
+
+          if (liveKey !== undefined) {
+            song.liveKey = liveKey;
+          }
+
+          song.keys = [song.liveKey];
+        });
       });
     }
+
+    if (!applyingLiveChanges) {
+      this.nextOverride = null;
+    }
+
+    if (
+      this.nextOverride &&
+      !next.songs.some(song => song.entryId === this.nextOverride)
+    ) {
+      this.nextOverride = null;
+    }
+
+    this.broadcastSetlistIdSubject.next(id);
+    this.broadcastSetlistSubject.next(next);
+
+    this.ended$.next(false);
+    this.endingAt$.next(null);
+
+    if (silent) {
+      return;
+    }
+
+    const currentId =
+      (this.currentState().song as SetlistSong | null)?.entryId;
+
+    const retainedCurrentSong = applyingLiveChanges
+      ? next.songs.find(song => song.entryId === currentId)
+      : null;
+
+    if (next.songs.length) {
+      // New broadcast: start at the first song.
+      // Applying edits: retain the current entry if it still exists.
+      this.selectEntry(
+        retainedCurrentSong?.entryId ?? next.songs[0].entryId,
+        false
+      );
+    } else {
+      // Switch to ad-hoc mode, retaining the current key.
+      this.messageService.updateCurrentSong({
+        song: null,
+        currentSection: '',
+        isPlaying: false
+      });
+    }
+
+    this.liveLocal$.next();
+  }
+
+  // --------------------------------------------------
+  // Sections
+  // --------------------------------------------------
+
+  addSection(setlistId: string, name: string): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist || !name.trim()) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: [
+        ...setlist.sections,
+        {
+          id: this.generateId('section'),
+          name: name.trim(),
+          songs: []
+        }
+      ]
+    });
+  }
+
+  renameSection(
+    setlistId: string,
+    sectionId: string,
+    name: string
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist || !name.trim()) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.map(section =>
+        section.id === sectionId
+          ? { ...section, name: name.trim() }
+          : section
+      )
+    });
+  }
+
+  removeSection(
+    setlistId: string,
+    sectionId: string
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.filter(
+        section => section.id !== sectionId
+      )
+    });
+  }
+
+  moveSection(
+    setlistId: string,
+    sectionId: string,
+    direction: -1 | 1
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist) {
+      return;
+    }
+
+    const sections = [...setlist.sections];
+    const from = sections.findIndex(
+      section => section.id === sectionId
+    );
+    const to = from + direction;
+
+    if (from < 0 || to < 0 || to >= sections.length) {
+      return;
+    }
+
+    [sections[from], sections[to]] = [
+      sections[to],
+      sections[from]
+    ];
+
+    this.updateSetlist(setlistId, { sections });
+  }
+
+  // --------------------------------------------------
+  // Song entries
+  // --------------------------------------------------
+
+  addSong(
+    setlistId: string,
+    sectionId: string,
+    input: {
+      title: string;
+      key: string;
+      notes?: string;
+      structure?: string[];
+    }
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist || !input.title.trim()) {
+      return;
+    }
+
+    const song: SetlistSong = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      entryId: this.generateId('song'),
+      title: input.title.trim(),
+      keys: [input.key],
+      plannedKey: input.key,
+      liveKey: input.key,
+      tempo: 0,
+      notes: input.notes?.trim() || undefined,
+      structure: input.structure ?? []
+    };
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.map(section =>
+        section.id === sectionId
+          ? {
+            ...section,
+            songs: [...section.songs, song]
+          }
+          : section
+      )
+    });
+  }
+
+  updateSong(
+    setlistId: string,
+    entryId: string,
+    patch: Partial<
+      Pick<
+        SetlistSong,
+        'title' | 'plannedKey' | 'liveKey' | 'notes' | 'structure'
+      >
+    >
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.map(section => ({
+        ...section,
+        songs: section.songs.map(song =>
+          song.entryId === entryId
+            ? {
+              ...song,
+              ...patch,
+              keys: [patch.liveKey ?? song.liveKey]
+            }
+            : song
+        )
+      }))
+    });
+  }
+
+  removeSong(setlistId: string, entryId: string): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.map(section => ({
+        ...section,
+        songs: section.songs.filter(
+          song => song.entryId !== entryId
+        )
+      }))
+    });
+  }
+
+  moveSong(
+    setlistId: string,
+    sectionId: string,
+    entryId: string,
+    direction: -1 | 1
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    if (!setlist) {
+      return;
+    }
+
+    const sections = setlist.sections.map(section => {
+      if (section.id !== sectionId) {
+        return section;
+      }
+
+      const songs = [...section.songs];
+      const from = songs.findIndex(
+        song => song.entryId === entryId
+      );
+      const to = from + direction;
+
+      if (from < 0 || to < 0 || to >= songs.length) {
+        return section;
+      }
+
+      [songs[from], songs[to]] = [
+        songs[to],
+        songs[from]
+      ];
+
+      return { ...section, songs };
+    });
+
+    this.updateSetlist(setlistId, { sections });
+  }
+
+  moveSongToSection(
+    setlistId: string,
+    entryId: string,
+    targetId: string
+  ): void {
+    const setlist = this.setlistsSubject.value[setlistId];
+
+    const song = setlist?.songs.find(
+      entry => entry.entryId === entryId
+    );
+
+    if (
+      !song ||
+      !setlist.sections.some(section => section.id === targetId)
+    ) {
+      return;
+    }
+
+    this.updateSetlist(setlistId, {
+      sections: setlist.sections.map(section => ({
+        ...section,
+        songs: [
+          ...section.songs.filter(
+            entry => entry.entryId !== entryId
+          ),
+          ...(section.id === targetId ? [song] : [])
+        ]
+      }))
+    });
+  }
+
+  // --------------------------------------------------
+  // Current song and up next
+  // --------------------------------------------------
+
+  selectEntry(
+    entryId: string,
+    clearOverride = true
+  ): void {
+    const found = this.findEntry(
+      this.broadcastSetlistSubject.value,
+      entryId
+    );
+
+    if (!found) {
+      return;
+    }
+
+    if (clearOverride) {
+      this.nextOverride = null;
+    }
+
+    this.messageService.updateCurrentSong({
+      song: found.song,
+      currentKey: found.song.liveKey,
+      currentSection: found.section.name,
+      isPlaying: true
+    });
+  }
+
+  setNext(entryId: string | null): void {
+    this.nextOverride = entryId;
+
+    this.broadcastSetlistSubject.next(
+      this.broadcastSetlistSubject.value
+    );
+
+    this.liveLocal$.next();
+  }
+
+  getNextSong(): SetlistSong | null {
+    const songs = this.broadcastSetlistSubject.value.songs;
+
+    if (this.nextOverride) {
+      return songs.find(
+        song => song.entryId === this.nextOverride
+      ) ?? null;
+    }
+
+    const currentId =
+      (this.currentState().song as SetlistSong | null)?.entryId;
+
+    const currentIndex = songs.findIndex(
+      song => song.entryId === currentId
+    );
+
+    return songs[currentIndex + 1] ?? null;
+  }
+
+  nextEntry(): void {
+    const next = this.getNextSong();
+
+    if (next) {
+      this.selectEntry(next.entryId);
+    }
+  }
+
+  previousEntry(): void {
+    const songs = this.broadcastSetlistSubject.value.songs;
+
+    const currentId =
+      (this.currentState().song as SetlistSong | null)?.entryId;
+
+    const currentIndex = songs.findIndex(
+      song => song.entryId === currentId
+    );
+
+    const previous = songs[currentIndex - 1];
+
+    if (previous) {
+      this.selectEntry(previous.entryId);
+    }
+  }
+
+  // --------------------------------------------------
+  // Persistent key changes
+  // --------------------------------------------------
+
+  setDirectKey(key: string): void {
+    this.ended$.next(false);
+
+    const current = this.currentBroadcastEntry();
+
+    if (current) {
+      this.updateSong(
+        this.broadcastSetlistIdSubject.value!,
+        current.song.entryId,
+        { liveKey: key }
+      );
+
+      this.patchLiveSong(current.song.entryId, key);
+    }
+
+    const updatedSong: SetlistSong | null = current
+      ? {
+        ...current.song,
+        liveKey: key,
+        keys: [key]
+      }
+      : null;
+
+    this.messageService.updateCurrentSong({
+      currentKey: key,
+      ...(updatedSong ? { song: updatedSong } : {})
+    });
+  }
+
+  transposeCurrent(step: -1 | 1): void {
+    const current = this.currentBroadcastEntry();
+    const oldKey = this.currentState().currentKey;
+    const newKey = this.transpose(oldKey, step);
+
+    // For example, "?" cannot be transposed.
+    if (!newKey) {
+      return;
+    }
+
+    if (current) {
+      const setlistId = this.broadcastSetlistIdSubject.value!;
+      const section = current.section;
+
+      const start = section.songs.findIndex(
+        song => song.entryId === current.song.entryId
+      );
+
+      const songs = [...section.songs];
+      const changedKeys = new Map<string, string>();
+
+      // Stop at the first different key.
+      // This loop never leaves the current section.
+      for (let index = start; index < songs.length; index++) {
+        const song = songs[index];
+
+        if (song.liveKey !== oldKey) {
+          break;
+        }
+
+        songs[index] = {
+          ...song,
+          liveKey: newKey,
+          keys: [newKey]
+        };
+
+        changedKeys.set(song.entryId, newKey);
+      }
+
+      // Merge only changed keys into the draft.
+      // Pending title, notes, order and section edits are preserved.
+      const draft = this.setlistsSubject.value[setlistId];
+
+      if (draft) {
+        this.updateSetlist(setlistId, {
+          sections: draft.sections.map(draftSection => ({
+            ...draftSection,
+            songs: draftSection.songs.map(song => {
+              const key = changedKeys.get(song.entryId);
+
+              return key !== undefined
+                ? {
+                  ...song,
+                  liveKey: key,
+                  keys: [key]
+                }
+                : song;
+            })
+          }))
+        });
+      }
+
+      const live = this.broadcastSetlistSubject.value;
+
+      const sections = live.sections.map(liveSection =>
+        liveSection.id === section.id
+          ? { ...liveSection, songs }
+          : liveSection
+      );
+
+      this.broadcastSetlistSubject.next(
+        this.normalize({ ...live, sections })
+      );
+    }
+
+    const updatedSong: SetlistSong | null = current
+      ? {
+        ...current.song,
+        liveKey: newKey,
+        keys: [newKey]
+      }
+      : null;
+
+    this.messageService.updateCurrentSong({
+      currentKey: newKey,
+      ...(updatedSong ? { song: updatedSong } : {})
+    });
+  }
+
+  // --------------------------------------------------
+  // Ending a service
+  // --------------------------------------------------
+
+  startEnding(seconds: number): void {
+    if (!Number.isFinite(seconds) || seconds < 1) {
+      return;
+    }
+
+    this.endingAt$.next(Date.now() + seconds * 1000);
+    this.liveLocal$.next();
+  }
+
+  cancelEnding(): void {
+    this.endingAt$.next(null);
+    this.liveLocal$.next();
+  }
+
+  finishService(): void {
+    // Saved setlists remain in setlistsSubject.
+    this.setBroadcastSetlist(null);
+
+    this.endingAt$.next(null);
+    this.ended$.next(true);
+
+    this.messageService.updateCurrentSong({
+      song: null,
+      currentKey: '?',
+      currentSection: '',
+      isPlaying: false
+    });
+  }
+
+  // --------------------------------------------------
+  // Internal helpers
+  // --------------------------------------------------
+
+  private currentState(): CurrentSongState {
+    return this.messageService.getCurrentSongState();
+  }
+
+  private currentBroadcastEntry(): {
+    section: SetlistSection;
+    song: SetlistSong;
+  } | null {
+    const entryId =
+      (this.currentState().song as SetlistSong | null)?.entryId;
+
+    return entryId
+      ? this.findEntry(
+        this.broadcastSetlistSubject.value,
+        entryId
+      )
+      : null;
+  }
+
+  private findEntry(
+    setlist: Setlist,
+    entryId: string
+  ): {
+    section: SetlistSection;
+    song: SetlistSong;
+  } | null {
+    for (const section of setlist.sections) {
+      const song = section.songs.find(
+        entry => entry.entryId === entryId
+      );
+
+      if (song) {
+        return { section, song };
+      }
+    }
+
+    return null;
+  }
+
+  private transpose(
+    key: string,
+    step: number
+  ): string | null {
+    const index = MUSICAL_KEYS.indexOf(
+      key as typeof MUSICAL_KEYS[number]
+    );
+
+    if (index < 0) {
+      return null;
+    }
+
+    return MUSICAL_KEYS[
+    (index + step + MUSICAL_KEYS.length) % MUSICAL_KEYS.length
+      ];
+  }
+
+  private patchLiveSong(
+    entryId: string,
+    liveKey: string
+  ): void {
+    const live = this.broadcastSetlistSubject.value;
+
+    const sections = live.sections.map(section => ({
+      ...section,
+      songs: section.songs.map(song =>
+        song.entryId === entryId
+          ? {
+            ...song,
+            liveKey,
+            keys: [liveKey]
+          }
+          : song
+      )
+    }));
+
+    this.broadcastSetlistSubject.next(
+      this.normalize({ ...live, sections })
+    );
+  }
+
+  private commit(map: Record<string, Setlist>): void {
+    this.setlistsSubject.next(map);
+    this.recomputeActiveSetlist();
+
+    // Saving a draft does not replace the broadcast snapshot.
+    this.setlistsLocalSubject.next(map);
+  }
+
+  private recomputeActiveSetlist(): void {
+    const activeId = this.activeSetlistIdSubject.value;
+
+    const active = activeId
+      ? this.setlistsSubject.value[activeId]
+      : null;
+
+    this.activeSetlistSubject.next(
+      active ?? this.emptySetlist()
+    );
+  }
+
+  private normalize(raw: Setlist): Setlist {
+    // Compatibility with older flat setlists.
+    const sourceSections: SetlistSection[] =
+      raw.sections ?? (
+        raw.songs?.length
+          ? [{
+            id: `${raw.id}_section`,
+            name: 'Setlist',
+            songs: raw.songs
+          }]
+          : []
+      );
+
+    const sections = sourceSections.map(section => ({
+      ...section,
+      songs: (section.songs ?? []).map((song, index) => {
+        const plannedKey =
+          song.plannedKey ?? song.keys?.[0] ?? 'C';
+
+        const liveKey =
+          song.liveKey ?? song.keys?.[0] ?? plannedKey;
+
+        return {
+          ...song,
+          entryId:
+            song.entryId ??
+            `${raw.id}_${section.id}_${song.id}_${index}`,
+          plannedKey,
+          liveKey,
+          keys: [liveKey],
+          structure: song.structure ?? []
+        };
+      })
+    }));
+
+    return {
+      ...raw,
+      date: new Date(raw.date),
+      sections,
+      songs: sections.flatMap(section => section.songs)
+    };
+  }
+
+  private emptySetlist(): Setlist {
+    return {
+      id: '',
+      name: '',
+      date: new Date(),
+      sections: [],
+      songs: []
+    };
+  }
+
+  private generateId(prefix: string): string {
+    return (
+      `${prefix}_${Date.now().toString(36)}_` +
+      Math.random().toString(36).slice(2, 8)
+    );
   }
 }

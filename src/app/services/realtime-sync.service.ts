@@ -1,219 +1,494 @@
-import { Injectable } from '@angular/core';
-import { MessageService, Message, CurrentSongState } from './message.service';
-import { SongService, Setlist } from './song.service';
+import { Injectable, NgZone, signal } from '@angular/core';
+import { initializeApp } from 'firebase/app';
+
+import {
+  connectDatabaseEmulator,
+  Database,
+  getDatabase,
+  onValue,
+  ref,
+  update
+} from 'firebase/database';
+
+import {
+  Message,
+  MessageService
+} from './message.service';
+
+import {
+  Setlist,
+  SongService
+} from './song.service';
 
 interface RealtimeConfig {
-  provider?: 'firebase';
-  firebaseDatabaseUrl?: string; // e.g., https://your-project-id-default-rtdb.firebaseio.com
-  roomId?: string; // logical room/channel name
-  enabled?: boolean;
+  firebaseDatabaseUrl: string;
+  projectId?: string;
+  roomId?: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class RealtimeSyncService {
-  private clientId = this.generateId();
-  private config: RealtimeConfig | null = null;
-  private eventSource?: EventSource;
-  private songEventSource?: EventSource;
+  readonly connected = signal(false);
+  readonly ready = signal(false);
+
+  // Number of writes awaiting Firebase confirmation.
+  readonly pending = signal(0);
+
+  readonly failed = signal(false);
+  readonly error = signal('');
+
+  readonly mode = signal('Firebase');
+  readonly room = signal('local-test');
+
+  private db?: Database;
+  private path = '';
   private initialized = false;
 
-  constructor(private messageService: MessageService, private songService: SongService) {}
+  private readonly clientId =
+    crypto.randomUUID?.() ??
+    `client_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+  private updates: Record<string, unknown> = {};
+  private failedUpdates: Record<string, unknown> = {};
+
+  private scheduled = false;
+
+  private knownLists: Record<string, Setlist> = {};
+
+  private readonly pendingWrites = new Set<Promise<void>>();
+
+  private messagesLoaded = false;
+  private seenMessages = new Set<string>();
+
+  private cueSlot = 0;
+
+  constructor(
+    private messages: MessageService,
+    private songs: SongService,
+    private zone: NgZone
+  ) {}
+
+  get canSend(): boolean {
+    return (
+      this.connected() &&
+      this.ready() &&
+      !this.error()
+    );
+  }
 
   async initFromConfig(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
+
+    this.initialized = true;
 
     try {
-      const resp = await fetch('/config.json', { cache: 'no-store' });
-      if (!resp.ok) {
-        // No config.json found or not served; just skip enabling realtime
+      const response = await fetch('/config.json', {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error('Could not load config.json.');
+      }
+
+      const configFile = await response.json();
+      const config = configFile.realtime as RealtimeConfig;
+
+      if (!config) {
+        throw new Error(
+          'The realtime configuration is missing from config.json.'
+        );
+      }
+
+      const params = new URLSearchParams(location.search);
+
+      const useEmulator =
+        params.get('backend') === 'emulator';
+
+      const roomId =
+        params.get('room') ||
+        config.roomId ||
+        'local-test';
+
+      if (!/^[a-zA-Z0-9_-]{1,80}$/.test(roomId)) {
+        throw new Error(
+          'Room must contain only letters, numbers, ' +
+          'hyphens or underscores, with a maximum of 80 characters.'
+        );
+      }
+
+      if (!useEmulator && !config.firebaseDatabaseUrl) {
+        throw new Error(
+          'firebaseDatabaseUrl is missing from config.json.'
+        );
+      }
+
+      this.room.set(roomId);
+
+      this.mode.set(
+        useEmulator
+          ? 'Local Firebase emulator'
+          : 'Firebase'
+      );
+
+      // Keep the new data model separate from the old prototype data.
+      this.path = `musifyV2/rooms/${roomId}`;
+
+      const app = initializeApp(
+        {
+          databaseURL: useEmulator
+            ? 'https://demo-musify-default-rtdb.firebaseio.com'
+            : config.firebaseDatabaseUrl,
+
+          projectId: useEmulator
+            ? 'demo-musify'
+            : config.projectId || 'moha-singphony'
+        },
+        this.clientId
+      );
+
+      this.db = getDatabase(app);
+
+      if (useEmulator) {
+        connectDatabaseEmulator(
+          this.db,
+          location.hostname,
+          9000
+        );
+      }
+
+      this.listenForConnection();
+      this.listenForState();
+      this.listenForMessages();
+
+      this.bindLocalChanges();
+      this.registerPendingSaveWarning();
+    } catch (error) {
+      this.error.set(this.errorMessage(error));
+    }
+  }
+
+  // --------------------------------------------------
+  // Incoming Firebase updates
+  // --------------------------------------------------
+
+  private listenForConnection(): void {
+    if (!this.db) {
+      return;
+    }
+
+    onValue(
+      ref(this.db, '.info/connected'),
+      snapshot => {
+        this.zone.run(() => {
+          this.connected.set(snapshot.val() === true);
+        });
+      }
+    );
+  }
+
+  private listenForState(): void {
+    if (!this.db) {
+      return;
+    }
+
+    onValue(
+      ref(this.db, this.path),
+      snapshot => {
+        this.zone.run(() => {
+          const data = snapshot.val() || {};
+
+          // Local changes have already updated this device.
+          // Do not reapply our own optimistic Firebase events.
+          if (
+            data._originId !== this.clientId ||
+            !this.ready()
+          ) {
+            this.knownLists = data.setlists || {};
+
+            this.songs.setSetlistsFromRemote(
+              this.knownLists
+            );
+
+            this.songs.ingestLive(data.live || null);
+          }
+
+          this.ready.set(true);
+
+          if (!this.failed()) {
+            this.error.set('');
+          }
+        });
+      },
+      error => {
+        this.zone.run(() => {
+          this.error.set(
+            `Database access failed: ${error.message}`
+          );
+        });
+      }
+    );
+  }
+
+  private listenForMessages(): void {
+    if (!this.db) {
+      return;
+    }
+
+    onValue(
+      ref(this.db, `${this.path}/cues`),
+      snapshot => {
+        this.zone.run(() => {
+          const values = Object.values(
+            snapshot.val() || {}
+          ) as Message[];
+
+          for (const message of values) {
+            if (!message?.id) {
+              continue;
+            }
+
+            // The initial snapshot contains existing cues.
+            // Remember them without replaying them.
+            if (!this.messagesLoaded) {
+              this.seenMessages.add(message.id);
+              continue;
+            }
+
+            if (this.seenMessages.has(message.id)) {
+              continue;
+            }
+
+            this.seenMessages.add(message.id);
+
+            const sentByThisDevice =
+              message.originId === this.clientId;
+
+            const stillVisible =
+              (message.expiresAt || 0) > Date.now();
+
+            if (!sentByThisDevice && stillVisible) {
+              this.messages.receiveExternalMessage(message);
+            }
+          }
+
+          this.messagesLoaded = true;
+
+          // Bound the device's duplicate-tracking memory.
+          if (this.seenMessages.size > 1000) {
+            this.seenMessages = new Set(
+              values
+                .filter(message => !!message?.id)
+                .map(message => message.id)
+            );
+          }
+        });
+      },
+      error => {
+        this.zone.run(() => {
+          this.error.set(
+            `Message access failed: ${error.message}`
+          );
+        });
+      }
+    );
+  }
+
+  // --------------------------------------------------
+  // Outgoing local changes
+  // --------------------------------------------------
+
+  private bindLocalChanges(): void {
+    this.songs.setlistsLocal$.subscribe(map => {
+      const ids = new Set([
+        ...Object.keys(this.knownLists),
+        ...Object.keys(map)
+      ]);
+
+      // Write only changed setlists instead of replacing
+      // the entire collection on every edit.
+      for (const id of ids) {
+        const nextValue = JSON.stringify(map[id]);
+        const previousValue = JSON.stringify(
+          this.knownLists[id]
+        );
+
+        if (nextValue !== previousValue) {
+          this.queue(
+            `setlists/${id}`,
+            map[id] ?? null
+          );
+        }
+      }
+
+      this.knownLists = structuredClone(map);
+    });
+
+    this.songs.liveLocal$.subscribe(() => {
+      this.queue('live', this.songs.snapshot());
+    });
+
+    // Important: subscribe to messagesLocal$, not messages$.
+    // Received messages must never be published back to Firebase.
+    this.messages.messagesLocal$.subscribe(message => {
+      if (!this.canSend) {
+        this.error.set(
+          'Not connected. This cue was not delivered.'
+        );
         return;
       }
-      const cfgAll = await resp.json();
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomOverride = urlParams.get('room') || urlParams.get('r');
-      const realtime: RealtimeConfig = {
-        provider: cfgAll?.realtime?.provider,
-        firebaseDatabaseUrl: cfgAll?.realtime?.firebaseDatabaseUrl,
-        roomId: roomOverride || cfgAll?.realtime?.roomId || 'demo',
-        enabled: cfgAll?.realtime?.enabled !== false
-      };
-      if (realtime.enabled && realtime.provider === 'firebase' && realtime.firebaseDatabaseUrl) {
-        this.config = realtime;
-        this.initialized = true;
-        this.bindLocalStreams();
-        this.startFirebaseListeners();
-      }
-    } catch (e) {
-      // Ignore config errors for now
-      console.warn('[RealtimeSync] Failed to load config.json:', e);
-    }
-  }
 
-  private bindLocalStreams() {
-    // Outgoing messages -> Firebase
-    this.messageService.messages$.subscribe(msg => {
-      if (!this.config) return;
-      const outgoing: Message = { ...msg, originId: this.clientId };
-      // Write to /rooms/{roomId}/messages/{id}.json
-      const path = `${this.config.firebaseDatabaseUrl}/rooms/${encodeURIComponent(this.config.roomId!)}/messages/${outgoing.id}.json`;
-      fetch(path, { method: 'PUT', body: JSON.stringify(outgoing) }).catch(() => {});
-    });
+      // Rolling transient buffer with at most 128 slots.
+      // Each message still has its own ID for duplicate detection.
+      const slot =
+        (Date.now() + this.cueSlot++) % 128;
 
-    // Outgoing currentSongState -> Firebase (only on local user actions)
-    this.messageService.currentSongLocal$.subscribe((state: CurrentSongState) => {
-      if (!this.config) return;
-      const withOrigin: any = { ...state, _originId: this.clientId };
-      const path = `${this.config.firebaseDatabaseUrl}/rooms/${encodeURIComponent(this.config.roomId!)}/currentSong.json`;
-      fetch(path, { method: 'PUT', body: JSON.stringify(withOrigin) }).catch(() => {});
-    });
-
-    // Outgoing setlists -> Firebase (only on local mutations)
-    this.songService.setlistsLocal$.subscribe(map => {
-      if (!this.config) return;
-      const room = encodeURIComponent(this.config.roomId!);
-      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/setlists.json`;
-      // Serialize Dates to ISO strings
-      const serialized: Record<string, any> = {};
-      Object.keys(map || {}).forEach(id => {
-        const sl: any = map[id];
-        serialized[id] = { ...sl, date: sl?.date instanceof Date ? sl.date.toISOString() : sl?.date };
+      this.queue(`cues/${slot}`, {
+        ...message,
+        originId: this.clientId
       });
-      fetch(path, { method: 'PUT', body: JSON.stringify(serialized) }).catch(() => {});
-    });
-
-    // Outgoing active setlist id -> Firebase (only on local changes)
-    this.songService.activeSetlistLocal$.subscribe(id => {
-      if (!this.config) return;
-      const room = encodeURIComponent(this.config.roomId!);
-      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/activeSetlistId.json`;
-      fetch(path, { method: 'PUT', body: JSON.stringify(id) }).catch(() => {});
-    });
-
-    // Outgoing broadcast setlist id -> Firebase (only on local changes)
-    this.songService.broadcastSetlistLocal$.subscribe(id => {
-      if (!this.config) return;
-      const room = encodeURIComponent(this.config.roomId!);
-      const path = `${this.config.firebaseDatabaseUrl}/rooms/${room}/broadcastSetlistId.json`;
-      fetch(path, { method: 'PUT', body: JSON.stringify(id) }).catch(() => {});
     });
   }
 
-  private startFirebaseListeners() {
-    if (!this.config) return;
-    const base = this.config.firebaseDatabaseUrl!.replace(/\/$/, '');
-    const room = encodeURIComponent(this.config.roomId!);
+  private queue(path: string, value: unknown): void {
+    this.updates[path] = value;
 
-    // Messages SSE
-    const messagesUrl = `${base}/rooms/${room}/messages.json`;
-    const currentSongUrl = `${base}/rooms/${room}/currentSong.json`;
-    const setlistsUrl = `${base}/rooms/${room}/setlists.json`;
-    const activeSetlistUrl = `${base}/rooms/${room}/activeSetlistId.json`;
-
-    // Firebase RTDB REST streaming uses text/event-stream with event types 'put' and 'patch'
-    const es = new EventSource(messagesUrl);
-    this.eventSource = es;
-
-    const handleMessagesEvent = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        // Firebase RTDB streaming payload shape: { path: string, data: any }
-        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
-        if (data == null) return; // ignore deletes or empty
-
-        if (typeof data === 'object' && !Array.isArray(data)) {
-          // Initial or multi-child payload: iterate child nodes (messages keyed by id)
-          Object.values(data).forEach((val: any) => this.tryIngestMessage(val));
-        } else {
-          // Single node payload
-          this.tryIngestMessage(data);
-        }
-      } catch (_) {}
-    };
-
-    es.addEventListener('put', handleMessagesEvent as EventListener);
-    es.addEventListener('patch', handleMessagesEvent as EventListener);
-    es.onerror = () => {
-      // On error, EventSource will retry; nothing to do
-    };
-
-    // Current song SSE for realtime updates
-    const esSong = new EventSource(currentSongUrl);
-    this.songEventSource = esSong;
-
-    const handleSongEvent = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
-        if (!data) return;
-        if (data._originId && data._originId === this.clientId) return;
-        const copy: any = { ...data };
-        delete copy._originId;
-        this.messageService.setCurrentSongStateFromRemote(copy as CurrentSongState);
-      } catch {}
-    };
-
-    esSong.addEventListener('put', handleSongEvent as EventListener);
-    esSong.addEventListener('patch', handleSongEvent as EventListener);
-    esSong.onerror = () => {
-      // EventSource auto-reconnects; no-op
-    };
-
-    // Setlists SSE for realtime updates
-    const esSetlists = new EventSource(setlistsUrl);
-    const handleSetlistsEvent = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
-        if (data == null) return;
-        // Coercion of dates happens in SongService
-        this.songService.setSetlistsFromRemote(data as Record<string, Setlist>);
-      } catch {}
-    };
-    esSetlists.addEventListener('put', handleSetlistsEvent as EventListener);
-    esSetlists.addEventListener('patch', handleSetlistsEvent as EventListener);
-    esSetlists.onerror = () => {};
-
-    // Active setlist id SSE
-    const esActive = new EventSource(activeSetlistUrl);
-    const handleActiveEvent = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
-        // data can be string id or null
-        this.songService.setActiveSetlistFromRemote(data as string | null);
-      } catch {}
-    };
-    esActive.addEventListener('put', handleActiveEvent as EventListener);
-    esActive.addEventListener('patch', handleActiveEvent as EventListener);
-    esActive.onerror = () => {};
-
-    // Broadcast setlist id SSE
-    const broadcastUrl = `${base}/rooms/${room}/broadcastSetlistId.json`;
-    const esBroadcast = new EventSource(broadcastUrl);
-    const handleBroadcastEvent = (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        const data = payload && typeof payload === 'object' && 'data' in payload ? payload.data : null;
-        this.songService.setBroadcastSetlistFromRemote(data as string | null);
-      } catch {}
-    };
-    esBroadcast.addEventListener('put', handleBroadcastEvent as EventListener);
-    esBroadcast.addEventListener('patch', handleBroadcastEvent as EventListener);
-    esBroadcast.onerror = () => {};
-  }
-
-  private tryIngestMessage(val: any) {
-    if (!val) return;
-    // Avoid echoing own-origin messages
-    if (val.originId && val.originId === this.clientId) return;
-    // Coerce timestamp back to Date if stored as string
-    if (val.timestamp && typeof val.timestamp === 'string') {
-      try { val.timestamp = new Date(val.timestamp); } catch {}
+    if (this.scheduled) {
+      return;
     }
-    this.messageService.receiveExternalMessage(val as Message);
+
+    this.scheduled = true;
+
+    // Group synchronous changes from a single action.
+    // For example: updated setlist keys + updated live state.
+    queueMicrotask(() => {
+      this.scheduled = false;
+      this.sendBatch();
+    });
   }
 
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  private sendBatch(): void {
+    if (
+      !this.db ||
+      Object.keys(this.updates).length === 0
+    ) {
+      return;
+    }
+
+    // Serialize dates and remove undefined optional properties.
+    const data: Record<string, unknown> = JSON.parse(
+      JSON.stringify({
+        ...this.updates,
+        _originId: this.clientId
+      })
+    );
+
+    this.updates = {};
+
+    this.pending.update(count => count + 1);
+
+    const write = update(
+      ref(this.db, this.path),
+      data
+    )
+      .then(() => {
+        this.zone.run(() => {
+          if (!this.failed()) {
+            this.error.set('');
+          }
+        });
+      })
+      .catch(error => {
+        this.failedUpdates = {
+          ...this.failedUpdates,
+          ...data
+        };
+
+        this.zone.run(() => {
+          this.failed.set(true);
+
+          this.error.set(
+            `Save failed: ${this.errorMessage(error)}. ` +
+            'Keep this window open and retry.'
+          );
+        });
+
+        throw error;
+      })
+      .finally(() => {
+        this.zone.run(() => {
+          this.pending.update(count => count - 1);
+          this.pendingWrites.delete(write);
+        });
+      });
+
+    this.pendingWrites.add(write);
+
+    // Errors are displayed through the error signal.
+    // flush() can still observe the rejected write.
+    void write.catch(() => {});
+  }
+
+  // --------------------------------------------------
+  // Explicit saving and retry
+  // --------------------------------------------------
+
+  async flush(): Promise<void> {
+    this.sendBatch();
+
+    await Promise.all([...this.pendingWrites]);
+
+    if (this.error()) {
+      throw new Error(this.error());
+    }
+  }
+
+  async retry(): Promise<void> {
+    if (!this.connected()) {
+      return;
+    }
+
+    this.updates = {
+      ...this.failedUpdates,
+      ...this.updates
+    };
+
+    this.failedUpdates = {};
+
+    this.failed.set(false);
+    this.error.set('');
+
+    try {
+      await this.flush();
+    } catch {
+      // The connection strip will display the save error.
+    }
+  }
+
+  // --------------------------------------------------
+  // Helpers
+  // --------------------------------------------------
+
+  private registerPendingSaveWarning(): void {
+    window.addEventListener('beforeunload', event => {
+      const hasPendingChanges =
+        this.pending() > 0 ||
+        Object.keys(this.updates).length > 0 ||
+        this.failed();
+
+      if (hasPendingChanges) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    });
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error
+      ? error.message
+      : String(error);
   }
 }

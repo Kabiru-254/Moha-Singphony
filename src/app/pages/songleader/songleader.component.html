@@ -1,185 +1,474 @@
-<div class="min-h-screen w-full bg-[var(--ms-bg)]">
-  <!-- Notification Component -->
-  <app-notification></app-notification>
+<fieldset
+  class="live-page"
+  [disabled]="!realtime.canSend"
+>
+  <!-- One incoming alert at a time -->
+  <div
+    *ngIf="incoming"
+    class="incoming"
+    role="alert"
+    aria-atomic="true"
+  >
+    <small>
+      FROM {{ incoming.sender.split('_').join(' ') }}
+    </small>
 
-  <!-- Top App Bar -->
-  <app-app-bar
-    [isDarkMode]="theme() === 'dark'"
-    (toggleTheme)="toggleTheme()"
-    (openNotifications)="notificationService.clearAllNotifications()"
-  ></app-app-bar>
+    <strong>{{ messageText(incoming) }}</strong>
+  </div>
 
-  <!-- Main Dashboard -->
-  <main class="mx-auto max-w-[1600px] p-4 md:p-6 lg:p-8">
-    <!-- Hero Control Center -->
-    <app-song-hero
-      [state]="currentSongState()"
-      [currentInstruction]="broadcastingCommand() || ''"
-      (broadcast)="broadcastCurrentSong()"
-      (toggleKeyPanel)="toggleKeyPanel()"
-    ></app-song-hero>
+  <header>
+    <a
+      routerLink="/role-selection"
+      queryParamsHandling="preserve"
+      class="brand"
+    >
+      <span class="logo">M</span>
 
-    <!-- Dashboard Grid -->
-    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-      <!-- Left column: Setlist & Controls -->
-      <div class="flex flex-col gap-6 lg:col-span-7 xl:col-span-8">
-        <!-- Key Selector Panel -->
-        <div
-          *ngIf="showKeyPanel()"
-          class="overflow-hidden"
-          [@panelExpand]="showKeyPanel()"
-        >
-          <app-key-selector
-            [keys]="allKeys()"
-            [selectedKey]="currentKey()"
-            [compact]="false"
-            (selectKey)="selectKey($event)"
-          ></app-key-selector>
+      <span>
+        <strong>Musify</strong>
+        <small>Song leader</small>
+      </span>
+    </a>
+
+    <div
+      class="broadcast-state"
+      [class.on]="broadcastId"
+    >
+      <i aria-hidden="true"></i>
+
+      {{
+        broadcastId
+          ? 'Broadcasting · ' + broadcast?.name
+          : 'Spontaneous Worship Mode'
+      }}
+    </div>
+
+    <a
+      routerLink="/song-list-creation"
+      queryParamsHandling="preserve"
+      class="setlists-link"
+    >
+      <span class="material-icons" aria-hidden="true">
+        queue_music
+      </span>
+
+      Setlists
+    </a>
+  </header>
+
+  <main>
+    <!-- Persistent service information -->
+    <section class="now-playing">
+      <div class="song-context">
+        <span>
+          {{
+            state?.currentSection ||
+            (broadcastId ? 'Live setlist' : 'No setlist selected')
+          }}
+        </span>
+
+        <h1>
+          {{ state?.song?.title || 'Spontaneous worship' }}
+        </h1>
+
+        <p *ngIf="state?.song?.notes; else noSongNotes">
+          {{ state?.song?.notes }}
+        </p>
+
+        <ng-template #noSongNotes>
+          <p>
+            {{
+              broadcastId
+                ? 'No notes added for this song.'
+                : 'Choose a key or send a cue to begin.'
+            }}
+          </p>
+        </ng-template>
+
+        <p *ngIf="state?.song?.structure?.length">
+          {{ state?.song?.structure?.join(' · ') }}
+        </p>
+      </div>
+
+      <div class="key-display">
+        <small>CURRENT KEY</small>
+        <strong>{{ state?.currentKey || '?' }}</strong>
+      </div>
+
+      <div class="up-next">
+        <small>
+          {{ songs.nextOverride ? 'UP NEXT · OVERRIDE' : 'UP NEXT' }}
+        </small>
+
+        <strong>{{ nextSong?.title || '—' }}</strong>
+
+        <span *ngIf="nextSong">
+          Key {{ nextSong.liveKey }}
+        </span>
+      </div>
+    </section>
+
+    <!-- All twelve keys remain directly accessible -->
+    <section class="key-section panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Live direction</span>
+          <h2>Key control</h2>
         </div>
 
-        <!-- Setlist Management -->
-        <app-setlist-panel
-          [setlist]="currentSetlist()"
-          [currentSongState]="currentSongState()"
-          [searchResults]="filteredSongs()"
-          [searchQuery]="searchQuery()"
-          (queryChange)="onSearchQueryChange($event)"
-          (addSong)="addToSetlist($event)"
-          (selectSong)="selectSong($event)"
-          (broadcastSong)="broadcastSong($event)"
-          (removeSong)="removeFromSetlist($event)"
-          (reorder)="onReorderSetlist($event)"
-          (broadcastSetlist)="broadcastSetlist()"
-          (addNewSong)="openSongSetupModal()"
-        ></app-setlist-panel>
-
-        <!-- Live Control Center -->
-        <app-live-control-center
-          [state]="currentSongState()"
-          [broadcastingCommand]="broadcastingCommand()"
-          (transposeDown)="transposeKey(-1)"
-          (transposeUp)="transposeKey(1)"
-          (tempoDown)="adjustTempo('slower')"
-          (tempoUp)="adjustTempo('faster')"
-          (tempoSet)="setTempo($event)"
-          (instruction)="sendMusicalInstruction($event)"
-        ></app-live-control-center>
+        <p>
+          Select a key for this song. Use ±1 to transpose
+          consecutive matching songs in the same section.
+        </p>
       </div>
 
-      <!-- Right column: Widgets -->
-      <div class="flex flex-col gap-6 lg:col-span-5 xl:col-span-4">
-        <!-- Analytics -->
-        <app-analytics-widget
-          [songsPlayed]="songsPlayed()"
-          [averageTempo]="averageTempo()"
-          [responseTimeMs]="24"
-          [activeMusicians]="musicians.length"
-          [messagesSent]="messagesSent()"
-          [songsRemaining]="songsRemaining()"
-        ></app-analytics-widget>
+      <div class="key-controls">
+        <button
+          type="button"
+          class="transpose"
+          aria-label="Transpose down one semitone"
+          [disabled]="!state?.currentKey || state?.currentKey === '?'"
+          (click)="transpose(-1)"
+        >
+          <small>TRANSPOSE</small>
+          −1
+        </button>
 
-        <!-- Connected Musicians -->
-        <app-musicians-widget
-          [musicians]="musicians"
-          [totalConnected]="musicians.length"
-        ></app-musicians-widget>
+        <div class="keys">
+          <button
+            *ngFor="let key of keys"
+            type="button"
+            [class.active]="state?.currentKey === key"
+            [attr.aria-pressed]="state?.currentKey === key"
+            [attr.aria-label]="'Set key to ' + key"
+            (click)="setKey(key)"
+          >
+            {{ key }}
+          </button>
+        </div>
 
-        <!-- Broadcast Activity -->
-        <app-broadcast-feed
-          [messages]="messageHistory()"
-        ></app-broadcast-feed>
+        <button
+          type="button"
+          class="transpose"
+          aria-label="Transpose up one semitone"
+          [disabled]="!state?.currentKey || state?.currentKey === '?'"
+          (click)="transpose(1)"
+        >
+          <small>TRANSPOSE</small>
+          +1
+        </button>
 
-        <!-- Quick Notes -->
-        <app-quick-notes
-          [notes]="quickNotes()"
-          (notesChange)="onNotesChange($event)"
-        ></app-quick-notes>
+        <button
+          type="button"
+          class="ask"
+          aria-label="Ask which key is being played"
+          (click)="askKey()"
+        >
+          <strong>?</strong>
+          <span>Ask the key</span>
+        </button>
       </div>
+    </section>
+
+    <div class="live-grid">
+      <!-- Predetermined recipient: musicians display -->
+      <section class="panel cues-panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">To musicians</span>
+            <h2>Live cues</h2>
+          </div>
+
+          <p>
+            Tap again to repeat a cue and increase its urgency.
+          </p>
+        </div>
+
+        <div class="cues">
+          <button
+            *ngFor="let item of cues"
+            type="button"
+            [class.active-cue]="activeCue === item"
+            (click)="cue(item)"
+          >
+            {{ item }}
+          </button>
+        </div>
+      </section>
+
+      <aside class="side-column">
+        <!-- Current song and up-next controls -->
+        <section class="panel navigation">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Setlist</span>
+              <h2>Song flow</h2>
+            </div>
+          </div>
+
+          <ng-container
+            *ngIf="broadcast as liveSetlist; else noBroadcast"
+          >
+            <div class="nav-buttons">
+              <button
+                type="button"
+                [disabled]="
+                  !liveSetlist.songs.length ||
+                  liveSetlist.songs[0].entryId ===
+                    $any(state?.song)?.entryId
+                "
+                (click)="previous()"
+              >
+                <span class="material-icons" aria-hidden="true">
+                  skip_previous
+                </span>
+
+                Previous
+              </button>
+
+              <button
+                type="button"
+                class="next"
+                [disabled]="!nextSong"
+                (click)="next()"
+              >
+                Next
+
+                <span class="material-icons" aria-hidden="true">
+                  skip_next
+                </span>
+              </button>
+            </div>
+
+            <label class="up-next-control">
+              <span>Up next</span>
+
+              <select
+                [ngModel]="songs.nextOverride"
+                (ngModelChange)="setUpNext($event)"
+                aria-label="Choose the next song"
+              >
+                <option [ngValue]="null">
+                  Follow setlist order
+                </option>
+
+                <optgroup
+                  *ngFor="let section of liveSetlist.sections"
+                  [label]="section.name"
+                >
+                  <option
+                    *ngFor="let song of section.songs; let index = index"
+                    [ngValue]="song.entryId"
+                  >
+                    {{ index + 1 }}. {{ song.title }}
+                    · {{ song.liveKey }}
+                  </option>
+                </optgroup>
+              </select>
+            </label>
+
+            <button
+              *ngIf="songs.nextOverride"
+              type="button"
+              class="clear-override"
+              (click)="setUpNext(null)"
+            >
+              Return to setlist order
+            </button>
+
+            <div class="setlist-songs">
+              <div
+                *ngFor="let section of liveSetlist.sections"
+                class="live-section"
+              >
+                <h3>{{ section.name }}</h3>
+
+                <button
+                  *ngFor="let song of section.songs; let index = index"
+                  type="button"
+                  [class.current]="
+                    song.entryId === $any(state?.song)?.entryId
+                  "
+                  [attr.aria-current]="
+                    song.entryId === $any(state?.song)?.entryId
+                      ? 'true'
+                      : null
+                  "
+                  (click)="selectSong(song)"
+                >
+                  <span>{{ index + 1 }}. {{ song.title }}</span>
+                  <strong>{{ song.liveKey }}</strong>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="adhoc-button"
+              (click)="adhoc()"
+            >
+              Switch to ad-hoc
+            </button>
+          </ng-container>
+
+          <ng-template #noBroadcast>
+            <a
+              routerLink="/song-list-creation"
+              queryParamsHandling="preserve"
+              class="empty-link"
+            >
+              Create or broadcast a setlist
+            </a>
+          </ng-template>
+        </section>
+
+        <!-- Custom text with explicitly selected recipients -->
+        <section class="panel custom-message">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Stay connected</span>
+              <h2>Message the team</h2>
+            </div>
+          </div>
+
+          <form (ngSubmit)="sendCustom()">
+            <label for="leader-message">
+              Your message
+            </label>
+
+            <textarea
+              id="leader-message"
+              name="customText"
+              [(ngModel)]="customText"
+              rows="3"
+              placeholder="What does the team need to know?"
+            ></textarea>
+
+            <span id="recipient-heading" class="recipient-heading">
+      Send to
+    </span>
+
+            <div
+              class="recipient-options"
+              role="group"
+              aria-labelledby="recipient-heading"
+            >
+              <label
+                *ngFor="let recipient of recipients"
+                class="recipient-chip"
+                [class.selected]="
+          customRecipients.includes(recipient.value)
+        "
+              >
+                <input
+                  type="checkbox"
+                  [checked]="
+            customRecipients.includes(recipient.value)
+          "
+                  (change)="toggleRecipient(recipient.value)"
+                />
+
+                <span>{{ recipient.label }}</span>
+              </label>
+            </div>
+
+            <small *ngIf="!customRecipients.length">
+              Choose at least one recipient.
+            </small>
+
+            <button
+              type="submit"
+              [disabled]="
+        !customText.trim() ||
+        !customRecipients.length
+      "
+            >
+              Send message
+            </button>
+          </form>
+        </section>
+        
+        <!-- Closing instruction and persistent countdown -->
+        <section class="panel end-service">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Closing</span>
+              <h2>End service</h2>
+            </div>
+          </div>
+
+          <p>
+            Play groove at your discretion until done.
+          </p>
+
+          <ng-container
+            *ngIf="remaining === null; else closingCountdown"
+          >
+            <label>
+              Countdown in seconds
+
+              <input
+                type="number"
+                min="1"
+                max="600"
+                step="1"
+                [(ngModel)]="endSeconds"
+                aria-label="Closing countdown in seconds"
+              />
+            </label>
+
+            <button
+              type="button"
+              [disabled]="
+                !endSeconds ||
+                endSeconds < 1 ||
+                endSeconds > 600
+              "
+              (click)="endService()"
+            >
+              Start closing countdown
+            </button>
+          </ng-container>
+
+          <ng-template #closingCountdown>
+            <strong class="countdown">
+              {{
+                remaining === 0
+                  ? 'Finishing service…'
+                  : 'Ending in ' + remaining + ' seconds'
+              }}
+            </strong>
+
+            <p>
+              Broadcasting will stop and the screens will
+              return Home. Saved setlists will remain available.
+            </p>
+
+            <button
+              type="button"
+              (click)="cancelEnding()"
+            >
+              Cancel countdown
+            </button>
+          </ng-template>
+        </section>
+
+        <!-- Compact incoming history -->
+        <section
+          *ngIf="recent.length"
+          class="panel recent"
+        >
+          <h3>Recent incoming</h3>
+
+          <div *ngFor="let message of recent">
+            <strong>
+              {{ message.sender.split('_').join(' ') }}
+            </strong>
+
+            <span>{{ messageText(message) }}</span>
+          </div>
+        </section>
+      </aside>
     </div>
   </main>
-
-  <!-- Add New Song Modal -->
-  <div
-    *ngIf="showSongSetupModal()"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="song-modal-title"
-  >
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeSongSetupModal()"></div>
-    <div class="relative w-full max-w-md rounded-[24px] border p-6 shadow-ms-2xl"
-         style="background: var(--ms-card); border-color: var(--ms-border-subtle);">
-      <div class="mb-5 flex items-center justify-between">
-        <h2 id="song-modal-title" class="text-[20px] font-bold text-[var(--ms-text)]">Add New Song</h2>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-label="Close modal"
-          (click)="closeSongSetupModal()"
-        >
-          <span class="material-icons text-[20px]">close</span>
-        </button>
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Song Title</label>
-          <input
-            type="text"
-            [value]="newSong().title"
-            placeholder="Enter song title"
-            class="ms-input"
-            (input)="setNewSongTitle($event)"
-          />
-        </div>
-
-        <div>
-          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Key</label>
-          <div class="grid grid-cols-4 gap-2">
-            <button
-              *ngFor="let key of allKeys()"
-              type="button"
-              class="rounded-[12px] border px-2 py-2 text-[14px] font-semibold transition-all"
-              [style.background]="newSong().key === key ? 'linear-gradient(135deg, var(--ms-primary), var(--ms-secondary))' : 'var(--ms-card)'"
-              [style.border-color]="newSong().key === key ? 'transparent' : 'var(--ms-border-subtle)'"
-              [style.color]="newSong().key === key ? 'white' : 'var(--ms-text)'"
-              (click)="setNewSongKey(key)"
-            >
-              {{ key }}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label class="mb-1.5 block text-[13px] font-semibold text-[var(--ms-text)]">Structure</label>
-          <input
-            type="text"
-            [value]="newSong().structure"
-            placeholder="Verse, Chorus, Bridge, Chorus"
-            class="ms-input"
-            (input)="setNewSongStructure($event)"
-          />
-          <p class="mt-1 text-[11px] text-[var(--ms-text-muted)]">Comma-separated sections</p>
-        </div>
-      </div>
-
-      <div class="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          class="ms-btn-ghost"
-          (click)="closeSongSetupModal()"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="ms-btn-primary"
-          [disabled]="!newSong().title"
-          (click)="saveSong()"
-        >
-          Save Song
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+</fieldset>

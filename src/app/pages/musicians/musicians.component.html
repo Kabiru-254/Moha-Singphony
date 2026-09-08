@@ -1,129 +1,103 @@
-<div class="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-[#0f172a] font-['Outfit']">
-  <!-- Notification Component -->
-  <app-notification></app-notification>
+<div
+  class="musician-screen"
+  [class.cue-active]="!!cueText"
+  [class.reinforced]="!!cueText && urgency === 2"
+  [class.urgent]="!!cueText && urgency === 3"
+>
+  <nav class="display-controls">
+    <a
+      routerLink="/role-selection"
+      queryParamsHandling="preserve"
+    >
+      Home
+    </a>
 
-  <!-- Background Ambience -->
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <button
+      type="button"
+      (click)="fullscreen()"
+    >
+      Full screen
+    </button>
+  </nav>
 
-  <!-- Current Command Flash -->
-  <div *ngIf="latestMessage && showFlash"
-    class="fixed inset-0 bg-black/80 dark:bg-black/90 flex items-center justify-center z-[200] backdrop-blur-sm"
-  >
-    <div class="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-2xl max-w-3xl w-full text-center mx-4 border border-gray-200 dark:border-gray-700">
-      <div class="text-4xl lg:text-5xl font-bold mb-6 text-gray-900 dark:text-white">
-        {{ latestMessage.type === MessageType.MUSICAL_INSTRUCTION ? latestMessage.content.instruction :
-           latestMessage.type === MessageType.KEY_CHANGE ? 'Key Change: ' + latestMessage.content.key :
-           latestMessage.type === MessageType.TEMPO_CHANGE ? (latestMessage.content && latestMessage.content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
-           latestMessage.type === MessageType.CUSTOM_MESSAGE ? latestMessage.content.text :
-           latestMessage.type === MessageType.GENERAL_COMMUNICATION ? latestMessage.content.text :
-           latestMessage.type === MessageType.SOUND_REQUEST ? latestMessage.content.request :
-           latestMessage.type === MessageType.ACKNOWLEDGMENT ? latestMessage.content.text : 'New Message' }}
-      </div>
-      <p class="text-xl text-gray-600 dark:text-gray-300">
-        From: {{ latestMessage.sender === RecipientRole.SONG_LEADER ? 'Song Leader' :
-                latestMessage.sender === RecipientRole.SOUND_TEAM ? 'Sound Team' : 'Unknown' }}
-      </p>
-    </div>
-  </div>
+  <p *ngIf="fullscreenError" class="fullscreen-error">
+    {{ fullscreenError }}
+  </p>
 
-  <!-- Main Content Canvas -->
-  <main class="flex flex-col items-center justify-center text-center max-w-[1400px] w-full px-8 lg:px-16 xl:px-24 space-y-8 lg:space-y-12 relative z-10">
-    
-    <!-- Key Badge - HIGHLY VISIBLE -->
-    <div class="px-12 lg:px-16 py-4 lg:py-5 bg-indigo-600 dark:bg-indigo-500 rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-200">
-      <span class="text-white font-bold text-5xl lg:text-7xl xl:text-8xl tracking-tight">
-        {{ currentSongState?.currentKey || 'C Major' }}
-      </span>
-    </div>
+  <main>
+    <span class="section">
+      {{
+        currentSongState?.currentSection ||
+        'Live musicians display'
+      }}
+    </span>
 
-    <!-- Song Name -->
-    <h1 class="text-gray-900 dark:text-white font-bold text-5xl lg:text-7xl xl:text-8xl tracking-tight leading-tight">
-      {{ currentSongState?.song?.title || 'Waiting for Song...' }}
+    <small class="key-label">CURRENT KEY</small>
+
+    <strong class="current-key">
+      {{ currentSongState?.currentKey || '?' }}
+    </strong>
+
+    <h1>
+      {{
+        currentSongState?.song?.title ||
+        'Spontaneous worship'
+      }}
     </h1>
 
-    <!-- Next Song Preview -->
-    <div *ngIf="nextSong" class="flex items-center gap-3 px-6 py-3 bg-gray-100 dark:bg-gray-800/60 rounded-full border border-gray-200 dark:border-gray-700/50">
-      <span class="text-gray-400 dark:text-gray-500 text-xs lg:text-sm font-medium tracking-widest uppercase">Next</span>
-      <span class="text-gray-600 dark:text-gray-300 text-sm lg:text-lg font-semibold">{{ nextSong.title }}</span>
-      <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full">
-        {{ nextSong.keys[0] }}
-      </span>
-    </div>
+    <p
+      *ngIf="currentSongState?.song?.notes"
+      class="song-notes"
+    >
+      {{ currentSongState?.song?.notes }}
+    </p>
 
-    <!-- Song Structure Navigation -->
-    <ng-container *ngIf="currentSongState?.song?.structure as structure">
-      <nav class="flex items-center justify-center gap-4 lg:gap-6 flex-wrap" *ngIf="structure.length > 0">
-        <ng-container *ngFor="let section of structure; let i = index">
-          <span 
-            class="font-semibold text-xl lg:text-2xl transition-all duration-200"
-            [ngClass]="currentSongState && section === currentSongState.currentSection ? 
-              'text-gray-900 dark:text-white scale-110' : 
-              'text-gray-400 dark:text-gray-500'"
-          >
-            {{ section }}
-          </span>
-          <span 
-            *ngIf="i < structure.length - 1" 
-            class="text-gray-400 dark:text-gray-600 text-xl"
-          >
-            •
-          </span>
-        </ng-container>
-      </nav>
-    </ng-container>
+    <p
+      *ngIf="currentSongState?.song?.structure?.length"
+      class="structure"
+    >
+      {{ currentSongState?.song?.structure?.join(' · ') }}
+    </p>
 
-    <!-- Chord Progression Display (Placeholder for future implementation) -->
-    <div class="w-full pt-8 lg:pt-12 flex justify-center opacity-30 dark:opacity-20">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 w-full max-w-5xl">
-        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
-          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 32</span>
-          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">IV</span>
-        </div>
-        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
-          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 33</span>
-          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">I</span>
-        </div>
-        <div class="h-32 lg:h-40 border-2 border-indigo-500/40 dark:border-indigo-400/40 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center">
-          <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 34</span>
-          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">V</span>
-        </div>
-        <div class="h-32 lg:h-40 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center">
-          <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase mb-2">Bar 35</span>
-          <span class="text-gray-900 dark:text-white font-bold text-3xl lg:text-4xl">VI</span>
-        </div>
-      </div>
+    <div *ngIf="nextSong" class="next-song">
+      <small>UP NEXT</small>
+      <strong>{{ nextSong.title }}</strong>
+      <span>{{ nextSong.liveKey }}</span>
     </div>
   </main>
 
-  <!-- Notification Bar (Latest Message) -->
-  <div 
-    *ngIf="messages.length > 0" 
-    class="fixed bottom-8 lg:bottom-12 left-1/2 -translate-x-1/2 w-full max-w-md lg:max-w-lg px-6 z-[100]"
+  <!-- A single cue: new messages replace this content -->
+  <section
+    *ngIf="cueText"
+    class="cue"
+    role="alert"
+    aria-atomic="true"
   >
-    <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl p-4 lg:p-5 flex items-center gap-4 shadow-2xl border border-gray-200 dark:border-gray-700">
-      <div class="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-xl flex items-center justify-center flex-shrink-0">
-        <span class="material-icons text-indigo-600 dark:text-indigo-400">spatial_audio_off</span>
-      </div>
-      <div class="flex flex-col text-left flex-grow min-w-0">
-        <span class="text-gray-900 dark:text-white font-semibold text-base lg:text-lg truncate">
-          {{ messages[0].type === MessageType.MUSICAL_INSTRUCTION ? messages[0].content.instruction :
-             messages[0].type === MessageType.KEY_CHANGE ? 'Key: ' + messages[0].content.key :
-             messages[0].type === MessageType.TEMPO_CHANGE ? (messages[0].content && messages[0].content.direction === 'increase' ? 'Increase Tempo' : 'Reduce Tempo') :
-             messages[0].type === MessageType.CUSTOM_MESSAGE ? messages[0].content.text :
-             messages[0].type === MessageType.GENERAL_COMMUNICATION ? messages[0].content.text :
-             messages[0].type === MessageType.SOUND_REQUEST ? messages[0].content.request : 'Message' }}
-        </span>
-        <span class="text-gray-500 dark:text-gray-400 font-semibold text-xs tracking-widest uppercase">
-          {{ messages[0].sender === RecipientRole.SONG_LEADER ? 'From Song Leader' :
-             messages[0].sender === RecipientRole.SOUND_TEAM ? 'From Sound Team' : 'Direct Message' }}
-        </span>
-      </div>
-    </div>
-  </div>
+    <span>
+      {{ sender }}
 
-  <!-- Offline Status -->
-  <div *ngIf="isOffline" class="fixed top-20 right-6 bg-red-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 z-50">
-    <span class="material-icons text-[20px]">wifi_off</span>
-    <span class="text-sm font-semibold">Offline</span>
-  </div>
+      <b *ngIf="urgency > 1">
+        · {{ urgency === 3 ? 'URGENT' : 'AGAIN' }}
+      </b>
+    </span>
+
+    <strong>{{ cueText }}</strong>
+  </section>
+
+  <aside
+    *ngIf="remaining !== null"
+    class="closing"
+  >
+    <strong>
+      Play groove at your discretion until done
+    </strong>
+
+    <span>
+      {{
+        remaining === 0
+          ? 'Finishing service…'
+          : 'Ending in ' + remaining + ' seconds'
+      }}
+    </span>
+  </aside>
 </div>

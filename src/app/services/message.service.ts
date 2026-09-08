@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
-// Message types
 export enum MessageType {
   KEY_CHANGE = 'KEY_CHANGE',
   TEMPO_CHANGE = 'TEMPO_CHANGE',
@@ -13,7 +12,6 @@ export enum MessageType {
   ACKNOWLEDGMENT = 'ACKNOWLEDGMENT'
 }
 
-// Recipient roles
 export enum RecipientRole {
   SONG_LEADER = 'SONG_LEADER',
   MUSICIAN = 'MUSICIAN',
@@ -23,7 +21,6 @@ export enum RecipientRole {
   ALL = 'ALL'
 }
 
-// Message interface
 export interface Message {
   id: string;
   type: MessageType;
@@ -32,25 +29,33 @@ export interface Message {
   recipients: RecipientRole[];
   timestamp: Date;
   acknowledged?: boolean;
-  // Optional origin identifier for sync services to prevent echo loops
+
+  // Identifies the device that originally sent the message.
   originId?: string;
+
+  // Epoch milliseconds after which the cue must not be displayed.
+  expiresAt?: number;
 }
 
-// Song interface
 export interface Song {
   id: number;
   title: string;
   keys: string[];
+
+  // Retained for compatibility with existing components.
   tempo: number;
+
   structure: string[];
   notes?: string;
 }
 
-// Current song state
 export interface CurrentSongState {
   song: Song | null;
   currentKey: string;
+
+  // Retained for compatibility; not used for faster/slower cues.
   tempo: number;
+
   currentSection?: string;
   isPlaying: boolean;
 }
@@ -59,147 +64,211 @@ export interface CurrentSongState {
   providedIn: 'root'
 })
 export class MessageService {
-  // Message subjects
-  private messagesSubject = new Subject<Message>();
-  private currentSongSubject = new BehaviorSubject<CurrentSongState>({
-    song: null,
-    currentKey: 'C',
-    tempo: 100, // Default tempo value (100 = medium)
-    isPlaying: false
-  });
-  // Emits only for local (this-client) initiated song state changes.
-  private currentSongLocalSubject = new Subject<CurrentSongState>();
+  private readonly cueDurationMs = 4000;
+  private readonly historyLimit = 200;
 
-  // Observable streams
-  public messages$ = this.messagesSubject.asObservable();
-  public currentSong$ = this.currentSongSubject.asObservable();
-  public currentSongLocal$ = this.currentSongLocalSubject.asObservable();
+  // All messages received by this device, including its own messages.
+  private readonly messagesSubject = new Subject<Message>();
 
-  // Message history
+  // Only messages created on this device. Firebase subscribes to this.
+  private readonly messagesLocalSubject = new Subject<Message>();
+
+  private readonly currentSongSubject =
+    new BehaviorSubject<CurrentSongState>({
+      song: null,
+      currentKey: '?',
+      tempo: 0,
+      isPlaying: false
+    });
+
+  // Only state changes initiated on this device.
+  private readonly currentSongLocalSubject =
+    new Subject<CurrentSongState>();
+
+  readonly messages$ = this.messagesSubject.asObservable();
+  readonly messagesLocal$ = this.messagesLocalSubject.asObservable();
+
+  readonly currentSong$ = this.currentSongSubject.asObservable();
+
+  readonly currentSongLocal$ =
+    this.currentSongLocalSubject.asObservable();
+
   private messageHistory: Message[] = [];
-  // Session start time to suppress historical notifications on first load
-  private sessionStart: Date = new Date();
 
-  constructor() { }
+  getCurrentSongState(): CurrentSongState {
+    return this.currentSongSubject.getValue();
+  }
 
-  // Send a message
   sendMessage(message: Omit<Message, 'id' | 'timestamp'>): void {
+    const now = Date.now();
+
     const completeMessage: Message = {
       ...message,
       id: this.generateId(),
-      timestamp: new Date(),
-      acknowledged: false
+      timestamp: new Date(now),
+      acknowledged: false,
+      expiresAt: now + this.cueDurationMs
     };
 
-    this.messageHistory.push(completeMessage);
+    this.rememberMessage(completeMessage);
+
+    // Update local recipients.
     this.messagesSubject.next(completeMessage);
+
+    // Publish through Firebase once the transport is updated.
+    this.messagesLocalSubject.next(completeMessage);
   }
 
-  // Accept a message coming from an external transport (e.g., realtime sync)
-  receiveExternalMessage(completeMessage: Message): void {
-    // Basic de-duplication: if id exists in history, ignore
-    if (this.messageHistory.find(m => m.id === completeMessage.id)) {
+  receiveExternalMessage(message: Message): void {
+    if (
+      !message?.id ||
+      !Array.isArray(message.recipients) ||
+      !message.content
+    ) {
       return;
     }
 
-    // Sanitize incoming message to avoid runtime errors from malformed payloads
-    const safeRecipients = Array.isArray((completeMessage as any).recipients)
-      ? (completeMessage as any).recipients
-      : [RecipientRole.ALL];
-    const safeTimestamp = (completeMessage as any).timestamp instanceof Date
-      ? (completeMessage as any).timestamp
-      : new Date((completeMessage as any).timestamp || Date.now());
+    const alreadyReceived = this.messageHistory.some(
+      existing => existing.id === message.id
+    );
 
-    const sanitized: Message = {
-      ...completeMessage,
-      recipients: safeRecipients,
-      timestamp: safeTimestamp
-    } as Message;
+    if (alreadyReceived) {
+      return;
+    }
 
-    this.messageHistory.push(sanitized);
-    this.messagesSubject.next(sanitized);
+    // Firebase serializes Date objects, so restore the timestamp.
+    const timestamp = message.timestamp instanceof Date
+      ? message.timestamp
+      : new Date(message.timestamp);
+
+    if (!Number.isFinite(timestamp.getTime())) {
+      return;
+    }
+
+    const receivedMessage: Message = {
+      ...message,
+      timestamp
+    };
+
+    this.rememberMessage(receivedMessage);
+
+    // Never emit received messages to messagesLocal$.
+    this.messagesSubject.next(receivedMessage);
   }
 
-  // Update current song (local user action)
   updateCurrentSong(songState: Partial<CurrentSongState>): void {
     const currentState = this.currentSongSubject.getValue();
+
     const nextState: CurrentSongState = {
       ...currentState,
       ...songState
-    } as CurrentSongState;
+    };
 
-    // Update global observable for local UI
+    // Persistent state updates locally first.
     this.currentSongSubject.next(nextState);
-    // Emit on local-only stream so transports can publish to network
+
+    // Tell Firebase that this device initiated the update.
     this.currentSongLocalSubject.next(nextState);
 
-    // If key or tempo changed, send a message
-    if (songState.currentKey && songState.currentKey !== currentState.currentKey) {
+    // Selecting a key again should still produce a visible cue.
+    if (songState.currentKey) {
       this.sendMessage({
         type: MessageType.KEY_CHANGE,
-        content: { key: songState.currentKey },
+        content: {
+          key: songState.currentKey
+        },
         sender: RecipientRole.SONG_LEADER,
         recipients: [RecipientRole.ALL]
       });
     }
 
-    if (songState.tempo && songState.tempo !== currentState.tempo) {
-      const direction = songState.tempo > currentState.tempo ? 'increase' : 'decrease';
+    // Avoid creating a second simultaneous cue when a key was also sent.
+    if (
+      songState.song &&
+      songState.song !== currentState.song &&
+      !songState.currentKey
+    ) {
       this.sendMessage({
-        type: MessageType.TEMPO_CHANGE,
-        content: { tempo: songState.tempo, direction },
+        type: MessageType.GENERAL_COMMUNICATION,
+        content: {
+          text: `Now playing: ${songState.song.title}`
+        },
         sender: RecipientRole.SONG_LEADER,
-        recipients: [RecipientRole.ALL]
+        recipients: [RecipientRole.MUSICIAN]
       });
     }
   }
 
-  // Acknowledge a message
-  acknowledgeMessage(messageId: string, role: RecipientRole): void {
-    const message = this.messageHistory.find(m => m.id === messageId);
-    if (message) {
-      message.acknowledged = true;
-      this.messagesSubject.next({ ...message });
-    }
+  setCurrentSongStateFromRemote(state: CurrentSongState): void {
+    // Restore persistent state without publishing it back to Firebase.
+    this.currentSongSubject.next(state);
   }
 
-  // Get messages for a specific role
   getMessagesForRole(role: RecipientRole): Observable<Message> {
     return new Observable<Message>(observer => {
       const subscription = this.messages$.subscribe(message => {
-        const recipientsArr: RecipientRole[] = Array.isArray((message as any).recipients)
-          ? (message as any).recipients
-          : [RecipientRole.ALL];
+        const recipients = message.recipients;
 
-        // Only emit notifications for messages created at/after this session started
-        const ts = (message as any).timestamp instanceof Date
-          ? ((message as any).timestamp as Date)
-          : new Date((message as any).timestamp);
-        const isRecent = ts && ts.getTime() >= this.sessionStart.getTime();
-
-        if (isRecent && (recipientsArr.includes(role) || recipientsArr.includes(RecipientRole.ALL))) {
-          observer.next(message);
+        if (!Array.isArray(recipients)) {
+          return;
         }
+
+        const intendedForRole =
+          recipients.includes(role) ||
+          recipients.includes(RecipientRole.ALL);
+
+        if (!intendedForRole) {
+          return;
+        }
+
+        const timestamp = message.timestamp instanceof Date
+          ? message.timestamp.getTime()
+          : new Date(message.timestamp).getTime();
+
+        const expiresAt =
+          message.expiresAt ?? timestamp + this.cueDurationMs;
+
+        // Expired cues may remain in history but must not flash again.
+        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+          return;
+        }
+
+        observer.next(message);
       });
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => subscription.unsubscribe();
     });
   }
 
-  // Get message history
+  acknowledgeMessage(messageId: string, role: RecipientRole): void {
+    // Retained for existing screens. Musicians do not acknowledge cues.
+    const message = this.messageHistory.find(
+      existing => existing.id === messageId
+    );
+
+    if (!message) {
+      return;
+    }
+
+    message.acknowledged = true;
+    this.messagesSubject.next({ ...message });
+  }
+
   getMessageHistory(): Message[] {
     return [...this.messageHistory];
   }
 
-  // Set current song state from an external source without generating new messages
-  setCurrentSongStateFromRemote(state: CurrentSongState): void {
-    this.currentSongSubject.next(state);
+  private rememberMessage(message: Message): void {
+    this.messageHistory = [
+      ...this.messageHistory,
+      message
+    ].slice(-this.historyLimit);
   }
 
-  // Generate a unique ID
   private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return (
+      Date.now().toString(36) +
+      Math.random().toString(36).slice(2)
+    );
   }
 }
