@@ -898,3 +898,33 @@ textarea {
     transition: none;
   }
 }
+
+.sound-requests {
+  background: #fbfaf2;
+}
+
+.sound-cues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.sound-cues button {
+  min-height: 64px;
+  padding: 12px;
+  background: #f0f4e8;
+  border-color: #d6e0ca;
+  color: #3e5d33;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sound-cues button.active-cue {
+  background: #dce9cf;
+  border-color: #8faa78;
+  color: #2d4c24;
+}
+
+.sound-cues button:last-child {
+  grid-column: 1 / -1;
+}

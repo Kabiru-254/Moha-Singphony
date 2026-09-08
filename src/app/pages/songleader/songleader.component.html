@@ -197,6 +197,27 @@
       </section>
 
       <aside class="side-column">
+
+        <section class="panel sound-requests">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">To sound team</span>
+              <h2>Sound requests</h2>
+            </div>
+          </div>
+
+          <div class="sound-cues">
+            <button
+              *ngFor="let item of soundCues"
+              type="button"
+              [class.active-cue]="activeCue === item"
+              (click)="sendSoundCue(item)"
+            >
+              {{ item }}
+            </button>
+          </div>
+        </section>
+
         <!-- Current song and up-next controls -->
         <section class="panel navigation">
           <div class="section-heading">
@@ -387,7 +408,7 @@
             </button>
           </form>
         </section>
-        
+
         <!-- Closing instruction and persistent countdown -->
         <section class="panel end-service">
           <div class="section-heading">

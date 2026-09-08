@@ -3,7 +3,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 
 import {
   CurrentSongState,
-  MessageService,
+  MessageService, RecipientRole,
   Song
 } from './message.service';
 
@@ -686,7 +686,10 @@ export class SongService {
   // Persistent key changes
   // --------------------------------------------------
 
-  setDirectKey(key: string): void {
+  setDirectKey(
+    key: string,
+    sender: RecipientRole = RecipientRole.SONG_LEADER
+  ): void {
     this.ended$.next(false);
 
     const current = this.currentBroadcastEntry();
@@ -709,10 +712,13 @@ export class SongService {
       }
       : null;
 
-    this.messageService.updateCurrentSong({
-      currentKey: key,
-      ...(updatedSong ? { song: updatedSong } : {})
-    });
+    this.messageService.updateCurrentSong(
+      {
+        currentKey: key,
+        ...(updatedSong ? { song: updatedSong } : {})
+      },
+      sender
+    );
   }
 
   transposeCurrent(step: -1 | 1): void {

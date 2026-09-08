@@ -1,0 +1,310 @@
+<fieldset
+  class="team-page"
+  [class.has-alert]="!!incoming"
+  [disabled]="!realtime.canSend"
+>
+  <header>
+    <a
+      routerLink="/role-selection"
+      queryParamsHandling="preserve"
+      class="brand"
+    >
+      <span class="brand-icon">
+        <span class="material-icons" aria-hidden="true">
+          {{ icon }}
+        </span>
+      </span>
+
+      <span>
+        <strong>Musify</strong>
+        <small>{{ title }}</small>
+      </span>
+    </a>
+
+    <span class="room-label">
+      {{ realtime.room() }}
+    </span>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <span class="eyebrow">Together in service</span>
+      <h1>{{ title }}</h1>
+      <p>{{ subtitle }}</p>
+    </div>
+
+    <!-- One incoming alert, with the whole page changing colour -->
+    <section
+      *ngIf="incoming"
+      class="incoming"
+      role="alert"
+      aria-atomic="true"
+    >
+      <small>
+        FROM {{ roleLabel(incoming.sender) }}
+      </small>
+
+      <strong>{{ messageText(incoming) }}</strong>
+
+      <span *ngIf="incoming.content.requestText">
+        Regarding: {{ incoming.content.requestText }}
+      </span>
+    </section>
+
+    <section class="service-context">
+      <div>
+        <small>CURRENT SONG</small>
+
+        <strong>
+          {{ state?.song?.title || 'Spontaneous worship' }}
+        </strong>
+
+        <span *ngIf="state?.currentSection">
+          {{ state?.currentSection }}
+        </span>
+      </div>
+
+      <div class="current-key">
+        <small>KEY</small>
+        <strong>{{ state?.currentKey || '?' }}</strong>
+      </div>
+
+      <div class="next-song">
+        <small>UP NEXT</small>
+        <strong>{{ nextSong?.title || '—' }}</strong>
+
+        <span *ngIf="nextSong">
+          Key {{ nextSong.liveKey }}
+        </span>
+      </div>
+
+      <p
+        *ngIf="canSetKey && state?.song?.notes"
+        class="song-notes"
+      >
+        {{ state?.song?.notes }}
+      </p>
+    </section>
+
+    <!-- Pianist-only persistent key controls -->
+    <section *ngIf="canSetKey" class="panel key-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Musical direction</span>
+          <h2>Confirm the key</h2>
+        </div>
+      </div>
+
+      <p
+        *ngIf="keyRequested"
+        class="key-request"
+        role="status"
+      >
+        The song leader is asking which key is being played.
+        Select it below.
+      </p>
+
+      <p *ngIf="!keyRequested" class="helper">
+        Selecting a key updates the current key on the leader
+        and musicians screens.
+      </p>
+
+      <div class="keys">
+        <button
+          *ngFor="let key of keys"
+          type="button"
+          [class.selected]="state?.currentKey === key"
+          [attr.aria-pressed]="state?.currentKey === key"
+          (click)="selectKey(key)"
+        >
+          {{ key }}
+        </button>
+      </div>
+    </section>
+
+    <div class="console-grid">
+      <div class="main-column">
+        <!-- Predefined actions -->
+        <section
+          *ngFor="let group of groups"
+          class="panel"
+        >
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Quick communication</span>
+              <h2>{{ group.name }}</h2>
+            </div>
+          </div>
+
+          <div class="quick-cues">
+            <button
+              *ngFor="let cue of group.cues"
+              type="button"
+              (click)="sendCue(cue)"
+            >
+              {{ cue.label }}
+            </button>
+          </div>
+        </section>
+
+        <!-- Sound-team replies to a selected request -->
+        <section
+          *ngIf="replyOptions.length"
+          class="panel reply-panel"
+        >
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Respond clearly</span>
+              <h2>Request response</h2>
+            </div>
+          </div>
+
+          <ng-container
+            *ngIf="selectedRequest; else noSelectedRequest"
+          >
+            <div class="reply-context">
+              <small>
+                REPLYING TO
+                {{ roleLabel(selectedRequest.sender) }}
+              </small>
+
+              <strong>
+                {{ messageText(selectedRequest) }}
+              </strong>
+            </div>
+
+            <div class="quick-cues">
+              <button
+                *ngFor="let response of replyOptions"
+                type="button"
+                (click)="reply(response)"
+              >
+                {{ response }}
+              </button>
+            </div>
+
+            <p class="helper">
+              The song leader receives a copy.
+              Select another message below to reply to it.
+            </p>
+          </ng-container>
+
+          <ng-template #noSelectedRequest>
+            <p class="empty">
+              Incoming requests will appear here.
+            </p>
+          </ng-template>
+        </section>
+
+        <section class="panel recent-panel">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Recent communication</span>
+              <h2>Incoming messages</h2>
+            </div>
+          </div>
+
+          <p *ngIf="!recent.length" class="empty">
+            No messages yet. You’re ready to receive.
+          </p>
+
+          <button
+            *ngFor="let message of recent"
+            type="button"
+            class="message-row"
+            [class.selected]="
+              selectedRequest?.id === message.id
+            "
+            (click)="selectRequest(message)"
+          >
+            <span class="message-meta">
+              <strong>{{ roleLabel(message.sender) }}</strong>
+              <small>{{ message.timestamp | date:'HH:mm' }}</small>
+            </span>
+
+            <span class="message-text">
+              {{ messageText(message) }}
+            </span>
+
+            <small *ngIf="message.content.requestText">
+              Regarding: {{ message.content.requestText }}
+            </small>
+          </button>
+        </section>
+      </div>
+
+      <aside>
+        <section class="panel custom-panel">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Stay connected</span>
+              <h2>Message the team</h2>
+            </div>
+          </div>
+
+          <form (ngSubmit)="sendCustom()">
+            <label>
+              Your message
+
+              <textarea
+                name="customText"
+                [(ngModel)]="customText"
+                rows="4"
+                placeholder="What does the team need to know?"
+              ></textarea>
+            </label>
+
+            <span class="recipient-heading">Send to</span>
+
+            <div
+              class="recipient-options"
+              role="group"
+              aria-label="Message recipients"
+            >
+              <label
+                *ngFor="let recipient of availableRecipients"
+                class="recipient-chip"
+                [class.selected]="
+                  customRecipients.includes(recipient.value)
+                "
+              >
+                <input
+                  type="checkbox"
+                  [checked]="
+                    customRecipients.includes(recipient.value)
+                  "
+                  (change)="toggleRecipient(recipient.value)"
+                />
+
+                <span>{{ recipient.label }}</span>
+              </label>
+            </div>
+
+            <p class="helper">
+              The song leader is copied on team messages.
+            </p>
+
+            <button
+              type="submit"
+              class="primary-button"
+              [disabled]="
+                !customText.trim() ||
+                !customRecipients.length
+              "
+            >
+              Send message
+            </button>
+          </form>
+        </section>
+      </aside>
+    </div>
+
+    <div
+      *ngIf="feedback"
+      class="send-feedback"
+      role="status"
+    >
+      {{ feedback }}
+    </div>
+  </main>
+</fieldset>

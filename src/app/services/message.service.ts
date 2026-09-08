@@ -156,7 +156,7 @@ export class MessageService {
     this.messagesSubject.next(receivedMessage);
   }
 
-  updateCurrentSong(songState: Partial<CurrentSongState>): void {
+  updateCurrentSong(songState: Partial<CurrentSongState>, sender: RecipientRole = RecipientRole.SONG_LEADER): void {
     const currentState = this.currentSongSubject.getValue();
 
     const nextState: CurrentSongState = {
@@ -177,7 +177,7 @@ export class MessageService {
         content: {
           key: songState.currentKey
         },
-        sender: RecipientRole.SONG_LEADER,
+        sender,
         recipients: [RecipientRole.ALL]
       });
     }
@@ -193,7 +193,7 @@ export class MessageService {
         content: {
           text: `Now playing: ${songState.song.title}`
         },
-        sender: RecipientRole.SONG_LEADER,
+        sender,
         recipients: [RecipientRole.MUSICIAN]
       });
     }

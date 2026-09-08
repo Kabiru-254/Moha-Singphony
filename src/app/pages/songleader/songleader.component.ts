@@ -76,16 +76,24 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     'SLOWER',
     'BUILD',
     'BREAK IT DOWN',
-    'HOLD',
-    'REPEAT',
-    'STOP',
-    'END',
+    'TRANSPOSE BY SEMITONE AFTER CHORUS',
+    'REPEAT CHORUS',
     'DRUMS ONLY',
     'KEYS ONLY',
     'STRINGS ONLY',
     'VOICES ONLY',
-    'COME IN',
-    'DROP OUT'
+    'KEYS AND STRINGS ONLY',
+    'VOCALS AND DRUMS ONLY',
+  ];
+
+  readonly soundCues = [
+    "Can't hear myself",
+    "Can't hear keys",
+    "Can't hear vocals",
+    'More monitor please',
+    'Less monitor please',
+    'Microphone problem',
+    'OK now'
   ];
 
   state: CurrentSongState | null = null;
@@ -322,6 +330,31 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     });
 
     this.customText = '';
+  }
+
+  sendSoundCue(text: string): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.messages.sendMessage({
+      type: MessageType.SOUND_REQUEST,
+      content: {
+        request: text
+      },
+      sender: RecipientRole.SONG_LEADER,
+      recipients: [RecipientRole.SOUND_TEAM]
+    });
+
+    this.activeCue = text;
+
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
+    }
+
+    this.cueTimer = setTimeout(() => {
+      this.activeCue = '';
+    }, 900);
   }
 
   // --------------------------------------------------
