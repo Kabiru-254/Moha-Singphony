@@ -16,4 +16,18 @@ export const routes: Routes = [
   { path: 'pianist', component: PianistComponent },
   { path: 'sound-team', component: SoundTeamComponent },
   { path: 'deacon', component: DeaconXComponent },
+  {
+    path: 'interpreter',
+    loadComponent: () =>
+      import(
+        './pages/interpreter/interpreter.component'
+        ).then((m) => m.InterpreterComponent),
+  },
+  {
+    path: 'projection-team',
+    loadComponent: () =>
+      import(
+        './pages/projection-team/projection-team.component'
+        ).then((m) => m.ProjectionTeamComponent),
+  },
 ];

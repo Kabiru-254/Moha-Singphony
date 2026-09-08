@@ -198,6 +198,8 @@
 
       <aside class="side-column">
 
+        <app-projection-share></app-projection-share>
+
         <section class="panel sound-requests">
           <div class="section-heading">
             <div>
@@ -212,6 +214,27 @@
               type="button"
               [class.active-cue]="activeCue === item"
               (click)="sendSoundCue(item)"
+            >
+              {{ item }}
+            </button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">To deacon</p>
+              <h2>Service coordination</h2>
+            </div>
+          </div>
+
+          <div class="deacon-cues">
+            <button
+              *ngFor="let item of deaconCues"
+              type="button"
+              [disabled]="!realtime.canSend"
+              [class.active-cue]="activeCue === item"
+              (click)="sendDeaconCue(item)"
             >
               {{ item }}
             </button>

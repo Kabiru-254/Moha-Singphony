@@ -32,6 +32,7 @@ import {
   SetlistSong,
   SongService
 } from '../../services/song.service';
+import {ProjectionShareComponent} from '../../shared/projection-share/projection-share.component';
 
 @Component({
   selector: 'app-songleader',
@@ -39,7 +40,8 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink
+    RouterLink,
+    ProjectionShareComponent
   ],
   templateUrl: './songleader.component.html',
   styleUrl: './songleader.component.css'
@@ -68,6 +70,13 @@ export class SongleaderComponent implements OnInit, OnDestroy {
       value: RecipientRole.ALL,
       label: 'Everyone'
     }
+  ];
+
+  readonly deaconCues = [
+    'This song is to call the minister',
+    'We are ready to hand over',
+    'Should we sing one more song?',
+    'Please confirm the minister is ready',
   ];
 
   // These predefined musical cues target the musicians display.
@@ -489,5 +498,28 @@ export class SongleaderComponent implements OnInit, OnDestroy {
     this.customRecipients = selected.includes(role)
       ? selected.filter(recipient => recipient !== role)
       : [...selected, role];
+  }
+
+  sendDeaconCue(text: string): void {
+    if (!this.realtime.canSend) {
+      return;
+    }
+
+    this.messages.sendMessage({
+      type: MessageType.SERVICE_COORDINATION,
+      content: { text },
+      sender: RecipientRole.SONG_LEADER,
+      recipients: [RecipientRole.DEACON],
+    });
+
+    this.activeCue = text;
+
+    if (this.cueTimer) {
+      clearTimeout(this.cueTimer);
+    }
+
+    this.cueTimer = setTimeout(() => {
+      this.activeCue = '';
+    }, 900);
   }
 }

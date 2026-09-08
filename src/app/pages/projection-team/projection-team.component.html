@@ -1,0 +1,191 @@
+<section
+  class="projection-setlists"
+  *ngIf="vm$ | async as vm"
+>
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Projection preparation</p>
+      <h1>Follow the service</h1>
+    </div>
+
+    <span class="status" [class.live]="!!vm.live">
+      {{ vm.live ? 'Live broadcast' : 'Preparation' }}
+    </span>
+  </header>
+
+  <!-- Live state always takes priority. -->
+  <article class="setlist-card live-card" *ngIf="vm.live as live">
+    <header class="card-heading">
+      <div>
+        <p class="eyebrow">Currently broadcasting</p>
+        <h2>{{ live.name }}</h2>
+        <p class="date">{{ live.date | date:'fullDate' }}</p>
+      </div>
+
+      <span class="live-indicator">Live</span>
+    </header>
+
+    <p class="helper">
+      Current and next songs follow the song leader automatically.
+    </p>
+
+    <ng-container
+      *ngTemplateOutlet="
+        songList;
+        context: {
+          $implicit: live,
+          currentId: vm.currentId,
+          nextId: vm.nextId
+        }
+      "
+    ></ng-container>
+  </article>
+
+  <!-- Before broadcasting, show the shared preview prominently. -->
+  <ng-container *ngIf="!vm.live">
+    <article
+      class="setlist-card"
+      *ngIf="vm.preview as preview; else waiting"
+    >
+      <header class="card-heading">
+        <div>
+          <p class="eyebrow">Shared for preparation</p>
+          <h2>{{ preview.setlist.name }}</h2>
+          <p class="date">
+            {{ preview.setlist.date | date:'fullDate' }}
+          </p>
+        </div>
+      </header>
+
+      <p class="helper">
+        Shared {{ preview.sharedAt | date:'medium' }}.
+        This is a preparation copy; it is not broadcasting.
+      </p>
+
+      <ng-container
+        *ngTemplateOutlet="
+          songList;
+          context: {
+            $implicit: preview.setlist,
+            currentId: null,
+            nextId: null
+          }
+        "
+      ></ng-container>
+    </article>
+  </ng-container>
+
+  <!-- A preview remains accessible during a live broadcast. -->
+  <ng-container *ngIf="vm.live">
+    <details class="preview-details" *ngIf="vm.preview as preview">
+      <summary>
+        Preparation copy: {{ preview.setlist.name }}
+      </summary>
+
+      <div class="preview-content">
+        <p class="helper">
+          Shared {{ preview.sharedAt | date:'medium' }}.
+          This copy may differ from the live broadcast above.
+        </p>
+
+        <ng-container
+          *ngTemplateOutlet="
+            songList;
+            context: {
+              $implicit: preview.setlist,
+              currentId: null,
+              nextId: null
+            }
+          "
+        ></ng-container>
+      </div>
+    </details>
+  </ng-container>
+
+  <ng-template #waiting>
+    <article class="empty-state">
+      <span class="material-icons" aria-hidden="true">
+        slideshow
+      </span>
+
+      <h2>Waiting for a setlist</h2>
+
+      <p>
+        A preparation copy will appear when the song leader shares one.
+        A live setlist appears automatically when broadcasting begins.
+      </p>
+    </article>
+  </ng-template>
+
+  <ng-template
+    #songList
+    let-setlist
+    let-currentId="currentId"
+    let-nextId="nextId"
+  >
+    <section
+      class="song-section"
+      *ngFor="let section of setlist.sections"
+    >
+      <h3>{{ section.name }}</h3>
+
+      <ol class="song-list">
+        <li
+          *ngFor="let song of section.songs"
+          [class.current-song]="song.entryId === currentId"
+          [class.next-song]="
+            song.entryId === nextId &&
+            song.entryId !== currentId
+          "
+          [attr.aria-current]="
+            song.entryId === currentId ? 'step' : null
+          "
+        >
+          <div class="song-heading">
+            <strong>{{ song.title }}</strong>
+
+            <span
+              class="song-badge current-badge"
+              *ngIf="song.entryId === currentId"
+            >
+              Current song
+            </span>
+
+            <span
+              class="song-badge next-badge"
+              *ngIf="
+                song.entryId === nextId &&
+                song.entryId !== currentId
+              "
+            >
+              Up next
+            </span>
+          </div>
+
+          <p class="song-notes" *ngIf="song.notes">
+            {{ song.notes }}
+          </p>
+
+          <p class="song-structure" *ngIf="song.structure.length">
+            <span>Structure:</span>
+            {{ song.structure.join(' → ') }}
+          </p>
+        </li>
+      </ol>
+
+      <p class="helper" *ngIf="!section.songs.length">
+        No songs in this section yet.
+      </p>
+    </section>
+  </ng-template>
+</section>
+
+<app-team-console
+  title="Projection team"
+  subtitle="Coordinate with the song leader, deacon and sound team."
+  icon="slideshow"
+  [role]="role"
+  [showServiceContext]="false"
+  [copySongLeader]="false"
+  [allowedRecipients]="allowedRecipients"
+></app-team-console>

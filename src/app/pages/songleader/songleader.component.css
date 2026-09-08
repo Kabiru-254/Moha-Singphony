@@ -928,3 +928,53 @@ textarea {
 .sound-cues button:last-child {
   grid-column: 1 / -1;
 }
+
+.deacon-cues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.deacon-cues button {
+  min-height: 68px;
+  padding: 14px;
+  border: 1px solid #ded7c5;
+  border-radius: 14px;
+  background: #f7f2e7;
+  color: #354438;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.deacon-cues button:hover:not(:disabled) {
+  background: #eee5d2;
+  border-color: #c4b58e;
+}
+
+.deacon-cues button.active-cue {
+  background: #e0eacb;
+  border-color: #9caf7b;
+  color: #253d33;
+}
+
+.deacon-cues button:focus-visible {
+  outline: 3px solid #718760;
+  outline-offset: 3px;
+}
+
+.deacon-cues button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 420px) {
+  .deacon-cues {
+    grid-template-columns: 1fr;
+  }
+}

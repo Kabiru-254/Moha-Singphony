@@ -39,7 +39,7 @@ export class RealtimeSyncService {
   readonly failed = signal(false);
   readonly error = signal('');
 
-  readonly mode = signal('Firebase');
+  readonly mode = signal('MOHA Singphony');
   readonly room = signal('local-test');
 
   private db?: Database;
@@ -131,7 +131,7 @@ export class RealtimeSyncService {
       this.mode.set(
         useEmulator
           ? 'Local Firebase emulator'
-          : 'Firebase'
+          : 'MOHA Singphony'
       );
 
       // Keep the new data model separate from the old prototype data.
@@ -214,6 +214,9 @@ export class RealtimeSyncService {
             );
 
             this.songs.ingestLive(data.live || null);
+            this.songs.ingestProjectionPreview(
+              data.projectionPreview ?? null
+            );
           }
 
           this.ready.set(true);
@@ -330,6 +333,11 @@ export class RealtimeSyncService {
     this.songs.liveLocal$.subscribe(() => {
       this.queue('live', this.songs.snapshot());
     });
+    this.songs.projectionPreviewLocal$.subscribe(
+      preview => {
+        this.queue('projectionPreview', preview);
+      }
+    );
 
     // Important: subscribe to messagesLocal$, not messages$.
     // Received messages must never be published back to Firebase.

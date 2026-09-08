@@ -18,6 +18,8 @@ export enum RecipientRole {
   PIANIST = 'PIANIST',
   SOUND_TEAM = 'SOUND_TEAM',
   DEACON = 'DEACON',
+  INTERPRETER = 'interpreter',
+  PROJECTION_TEAM = 'projection_team',
   ALL = 'ALL'
 }
 

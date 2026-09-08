@@ -82,7 +82,27 @@ export class RoleSelectionComponent implements OnInit {
         'Stay connected with the team and help coordinate the service.',
       device: 'Phone or tablet',
       primary: false
-    }
+    },
+    {
+      id: 'interpreter',
+      name: 'Interpreter',
+      icon: 'translate',
+      route: '/interpreter',
+      description:
+        'Receive service updates and communicate with the team.',
+      device: 'Personal phone or tablet',
+      primary: false,
+    },
+    {
+      id: 'projection-team',
+      name: 'Projection Team',
+      icon: 'slideshow',
+      route: '/projection-team',
+      description:
+        'Coordinate with the people guiding the service.',
+      device: 'Computer, tablet or phone',
+      primary: false,
+    },
   ];
 
   constructor(public realtime: RealtimeSyncService) {}

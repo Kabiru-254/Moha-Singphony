@@ -3,7 +3,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 
 import {
   CurrentSongState,
-  MessageService, RecipientRole,
+  MessageService, MessageType, RecipientRole,
   Song
 } from './message.service';
 
@@ -44,6 +44,11 @@ export interface LiveServiceSnapshot {
   nextOverride: string | null;
   endingAt: number | null;
   ended: boolean;
+}
+
+export interface ProjectionPreview {
+  setlist: Setlist;
+  sharedAt: number;
 }
 
 @Injectable({
@@ -107,6 +112,18 @@ export class SongService {
 
   readonly broadcastSetlistLocal$ =
     this.broadcastSetlistLocalSubject.asObservable();
+
+  private readonly projectionPreviewSubject =
+    new BehaviorSubject<ProjectionPreview | null>(null);
+
+  private readonly projectionPreviewLocalSubject =
+    new Subject<ProjectionPreview | null>();
+
+  readonly projectionPreview$ =
+    this.projectionPreviewSubject.asObservable();
+
+  readonly projectionPreviewLocal$ =
+    this.projectionPreviewLocalSubject.asObservable();
 
   nextOverride: string | null = null;
 
@@ -174,6 +191,55 @@ export class SongService {
     this.setBroadcastSetlist(id, true);
   }
 
+  shareSetlistWithProjection(setlistId: string): boolean {
+    const saved = this.setlistsSubject.value[setlistId];
+
+    if (!saved?.songs.length) {
+      return false;
+    }
+
+    // A separate snapshot: later draft edits must not leak into it.
+    const preview: ProjectionPreview = {
+      setlist: this.normalize(structuredClone(saved)),
+      sharedAt: Date.now(),
+    };
+
+    this.projectionPreviewSubject.next(preview);
+    this.projectionPreviewLocalSubject.next(preview);
+
+    this.messageService.sendMessage({
+      type: MessageType.SERVICE_COORDINATION,
+      content: {
+        text: `Setlist shared for preparation: ${saved.name}`,
+      },
+      sender: RecipientRole.SONG_LEADER,
+      recipients: [RecipientRole.PROJECTION_TEAM],
+    });
+
+    return true;
+  }
+
+  clearProjectionPreview(): void {
+    this.projectionPreviewSubject.next(null);
+    this.projectionPreviewLocalSubject.next(null);
+  }
+
+  ingestProjectionPreview(
+    value: ProjectionPreview | null
+  ): void {
+    if (!value?.setlist?.id) {
+      this.projectionPreviewSubject.next(null);
+      return;
+    }
+
+    // Remote updates only update local state.
+    // They must not emit another outgoing Firebase write.
+    this.projectionPreviewSubject.next({
+      setlist: this.normalize(value.setlist),
+      sharedAt: value.sharedAt,
+    });
+  }
+
   // --------------------------------------------------
   // Setlist management
   // --------------------------------------------------
@@ -237,6 +303,12 @@ export class SongService {
 
     if (this.broadcastSetlistIdSubject.value === id) {
       this.setBroadcastSetlist(null);
+    }
+
+    if (
+      this.projectionPreviewSubject.value?.setlist.id === id
+    ) {
+      this.clearProjectionPreview();
     }
   }
 
@@ -829,8 +901,9 @@ export class SongService {
   }
 
   finishService(): void {
-    // Saved setlists remain in setlistsSubject.
+    // Saved setlists remain available for future use.
     this.setBroadcastSetlist(null);
+    this.clearProjectionPreview();
 
     this.endingAt$.next(null);
     this.ended$.next(true);
@@ -839,10 +912,10 @@ export class SongService {
       song: null,
       currentKey: '?',
       currentSection: '',
-      isPlaying: false
+      isPlaying: false,
     });
   }
-
+  
   // --------------------------------------------------
   // Internal helpers
   // --------------------------------------------------

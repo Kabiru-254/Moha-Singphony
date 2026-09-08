@@ -20,6 +20,7 @@ import {
       subtitle="Keep the team heard, respond to requests and signal when everything is ready."
       icon="tune"
       [role]="role"
+      [showServiceContext]="false"
       [cues]="cues"
       [replyOptions]="replyOptions"
     ></app-team-console>
@@ -70,7 +71,13 @@ export class SoundTeamComponent {
         RecipientRole.SONG_LEADER,
         RecipientRole.PIANIST
       ]
-    }
+    },
+    {
+      label: 'Please put water for the minister',
+      group: 'To interpreter',
+      type: MessageType.SERVICE_COORDINATION,
+      recipients: [RecipientRole.INTERPRETER],
+    },
   ];
 
   readonly replyOptions = [

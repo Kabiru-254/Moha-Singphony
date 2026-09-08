@@ -56,39 +56,53 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
   @Input() title = '';
   @Input() subtitle = '';
   @Input() icon = 'music_note';
+  @Input() showServiceContext = true;
+  @Input() copySongLeader = true;
 
   @Input() role: RecipientRole = RecipientRole.SOUND_TEAM;
   @Input() canSetKey = false;
   @Input() cues: TeamCue[] = [];
   @Input() replyOptions: string[] = [];
+  @Input() allowedRecipients: RecipientRole[] | null = null;
 
   readonly keys = [...MUSICAL_KEYS];
 
-  readonly roleOptions = [
+  readonly roleOptions: {
+    value: RecipientRole;
+    label: string;
+  }[] = [
     {
       value: RecipientRole.SONG_LEADER,
-      label: 'Song leader'
+      label: 'Song leader',
     },
     {
       value: RecipientRole.MUSICIAN,
-      label: 'Musicians'
+      label: 'Musicians',
     },
     {
       value: RecipientRole.PIANIST,
-      label: 'Pianist'
+      label: 'Pianist',
     },
     {
       value: RecipientRole.SOUND_TEAM,
-      label: 'Sound team'
+      label: 'Sound team',
     },
     {
       value: RecipientRole.DEACON,
-      label: 'Deacon'
+      label: 'Deacon',
+    },
+    {
+      value: RecipientRole.INTERPRETER,
+      label: 'Interpreter',
+    },
+    {
+      value: RecipientRole.PROJECTION_TEAM,
+      label: 'Projection team',
     },
     {
       value: RecipientRole.ALL,
-      label: 'Everyone'
-    }
+      label: 'Everyone',
+    },
   ];
 
   groups: CueGroup[] = [];
@@ -168,9 +182,16 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
   }
 
   get availableRecipients() {
-    return this.roleOptions.filter(
-      option => option.value !== this.role
-    );
+    return this.roleOptions.filter((option) => {
+      if (option.value === this.role) {
+        return false;
+      }
+
+      return (
+        this.allowedRecipients === null ||
+        this.allowedRecipients.includes(option.value)
+      );
+    });
   }
 
   selectKey(key: string): void {
@@ -189,17 +210,21 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const recipients = this.withSongLeader(cue.recipients);
+
+    if (!recipients.length) {
+      this.showFeedback('This recipient is not available.');
+      return;
+    }
+
     this.messages.sendMessage({
       type: cue.type,
-
-      content: cue.type === MessageType.SOUND_REQUEST
-        ? { request: cue.label }
-        : { text: cue.label },
-
+      content:
+        cue.type === MessageType.SOUND_REQUEST
+          ? { request: cue.label }
+          : { text: cue.label },
       sender: this.role,
-
-      // Keep the song leader informed about team communication.
-      recipients: this.withSongLeader(cue.recipients)
+      recipients,
     });
 
     this.showFeedback(cue.label);
@@ -210,7 +235,18 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
   }
 
   reply(text: string): void {
-    if (!this.selectedRequest || !this.realtime.canSend) {
+    const request = this.selectedRequest;
+
+    if (!request || !this.realtime.canSend) {
+      return;
+    }
+
+    const recipients = this.withSongLeader([request.sender]);
+
+    if (!recipients.length) {
+      this.showFeedback(
+        'Your role cannot reply to this sender.'
+      );
       return;
     }
 
@@ -218,17 +254,15 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
       type: MessageType.GENERAL_COMMUNICATION,
       content: {
         text,
-        replyTo: this.selectedRequest.id,
-        requestText: this.messageText(this.selectedRequest)
+        replyTo: request.id,
+        requestText: this.messageText(request),
       },
       sender: this.role,
-      recipients: this.withSongLeader([
-        this.selectedRequest.sender
-      ])
+      recipients,
     });
 
     this.showFeedback(
-      `${text} — to ${this.roleLabel(this.selectedRequest.sender)}`
+      `${text} — to ${this.roleLabel(request.sender)}`
     );
   }
 
@@ -255,11 +289,16 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
   sendCustom(): void {
     const text = this.customText.trim();
 
-    if (
-      !this.realtime.canSend ||
-      !text ||
-      !this.customRecipients.length
-    ) {
+    if (!text || !this.realtime.canSend) {
+      return;
+    }
+
+    const recipients = this.withSongLeader(
+      this.customRecipients
+    );
+
+    if (!recipients.length) {
+      this.showFeedback('Select a recipient.');
       return;
     }
 
@@ -267,7 +306,7 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
       type: MessageType.CUSTOM_MESSAGE,
       content: { text },
       sender: this.role,
-      recipients: this.withSongLeader(this.customRecipients)
+      recipients,
     });
 
     this.customText = '';
@@ -346,15 +385,32 @@ export class TeamConsoleComponent implements OnInit, OnDestroy {
   private withSongLeader(
     recipients: RecipientRole[]
   ): RecipientRole[] {
-    if (recipients.includes(RecipientRole.ALL)) {
+    const targets = new Set<RecipientRole>(recipients);
+
+    if (
+      this.copySongLeader &&
+      this.role !== RecipientRole.SONG_LEADER
+    ) {
+      targets.add(RecipientRole.SONG_LEADER);
+    }
+
+    // Restricted consoles can only send to explicitly allowed roles.
+    if (this.allowedRecipients !== null) {
+      return [...targets].filter(
+        (recipient) =>
+          recipient !== RecipientRole.ALL &&
+          recipient !== this.role &&
+          this.allowedRecipients!.includes(recipient)
+      );
+    }
+
+    if (targets.has(RecipientRole.ALL)) {
       return [RecipientRole.ALL];
     }
 
-    return [...new Set([
-      ...recipients,
-      RecipientRole.SONG_LEADER
-    ])];
+    return [...targets];
   }
+
 
   private showFeedback(text: string): void {
     this.feedback = text;

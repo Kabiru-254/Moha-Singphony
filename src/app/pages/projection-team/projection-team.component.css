@@ -1,0 +1,276 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f8f7f1;
+  color: #253d33;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.projection-setlists {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.page-heading,
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.page-heading {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #586c52;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3 {
+  color: #253d33;
+}
+
+h1 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 500;
+}
+
+h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.status,
+.live-indicator,
+.song-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status {
+  border: 1px solid #ded5be;
+  background: #f3ecdc;
+  color: #685737;
+}
+
+.status.live,
+.live-indicator {
+  border: 1px solid #b9c9a9;
+  background: #e6efda;
+  color: #344f2d;
+}
+
+.setlist-card {
+  padding: 26px;
+  border: 1px solid #dce3d6;
+  border-radius: 22px;
+  background: #fffef9;
+  box-shadow: 0 8px 24px rgba(48, 67, 46, 0.04);
+}
+
+.live-card {
+  border-top: 4px solid #819a69;
+}
+
+.date {
+  margin: 10px 0 0;
+  color: #596956;
+  font-size: 14px;
+}
+
+.helper {
+  color: #596956;
+  line-height: 1.6;
+}
+
+.song-section {
+  margin-top: 26px;
+}
+
+.song-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: song;
+}
+
+.song-list li {
+  position: relative;
+  counter-increment: song;
+  padding: 17px 18px 17px 52px;
+  border: 1px solid #e0e5da;
+  border-radius: 14px;
+  background: #fafbf7;
+}
+
+.song-list li::before {
+  content: counter(song);
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  color: #637459;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.song-list li.current-song {
+  border: 2px solid #789761;
+  background: #eaf1df;
+}
+
+.song-list li.next-song {
+  border-color: #d2bd88;
+  background: #fbf5e7;
+}
+
+.song-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.song-heading strong {
+  font-size: 19px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.current-badge {
+  background: #365341;
+  color: #ffffff;
+}
+
+.next-badge {
+  background: #eee1bd;
+  color: #62512d;
+}
+
+.song-notes {
+  margin: 10px 0 0;
+  color: #40543f;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.song-structure {
+  margin: 10px 0 0;
+  color: #596956;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.song-structure span {
+  font-weight: 700;
+}
+
+.preview-details {
+  margin-top: 20px;
+  border: 1px solid #ded8c8;
+  border-radius: 18px;
+  background: #fffdf6;
+}
+
+.preview-details summary {
+  padding: 18px 22px;
+  color: #4d5944;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preview-details summary:focus-visible {
+  outline: 3px solid #7e956c;
+  outline-offset: 3px;
+  border-radius: 16px;
+}
+
+.preview-content {
+  padding: 0 22px 22px;
+}
+
+.empty-state {
+  padding: 44px 24px;
+  border: 1px dashed #cbd5c0;
+  border-radius: 22px;
+  background: #fffef9;
+  text-align: center;
+}
+
+.empty-state .material-icons {
+  margin-bottom: 16px;
+  color: #718760;
+  font-size: 42px;
+}
+
+.empty-state p {
+  max-width: 580px;
+  margin: 16px auto 0;
+  color: #596956;
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .projection-setlists {
+    padding: 20px 14px;
+  }
+
+  .page-heading {
+    flex-direction: column;
+  }
+
+  .setlist-card {
+    padding: 20px 16px;
+  }
+
+  .card-heading {
+    flex-wrap: wrap;
+  }
+
+  .song-heading strong {
+    font-size: 17px;
+  }
+
+  .song-list li {
+    padding-right: 12px;
+    padding-left: 42px;
+  }
+
+  .song-list li::before {
+    left: 14px;
+  }
+}
