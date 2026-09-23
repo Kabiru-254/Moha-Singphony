@@ -1,6 +1,6 @@
 :host {
   display: block;
-  color: #172235;
+  color: #253d33;
   font-family: inherit;
 }
 
@@ -9,12 +9,25 @@
 }
 
 .setlists-page {
+  --ink: #253d33;
+  --muted: #718077;
+  --forest: #355d49;
+  --forest-light: #56765b;
+  --sage: #e7eee4;
+  --gold: #aa8960;
+  --border: #dfe5da;
+  --danger: #a34e40;
+
   min-width: 0;
   min-height: 100vh;
   margin: 0;
   padding: 24px;
   border: 0;
-  background: #f3f6fb;
+
+  background:
+    radial-gradient(ellipse at 12% 3%, #e6ede0 0, transparent 42%),
+    radial-gradient(ellipse at 94% 34%, #efe5d1 0, transparent 40%),
+    #f8f7f1;
 }
 
 .setlists-page:disabled .workspace {
@@ -31,15 +44,16 @@ textarea {
 button {
   min-height: 44px;
   padding: 10px 14px;
-  border: 1px solid #d9e1ed;
+  border: 1px solid var(--border);
   border-radius: 9px;
-  background: #fff;
-  color: #172235;
+  background: #ffffff;
+  color: var(--ink);
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 
 button:hover:not(:disabled) {
-  background: #eaf0ff;
+  background: #f0f4eb;
 }
 
 button:disabled {
@@ -52,7 +66,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #88a9ff;
+  outline: 3px solid #779766;
   outline-offset: 3px;
 }
 
@@ -62,10 +76,10 @@ textarea {
   width: 100%;
   min-width: 0;
   padding: 11px 12px;
-  border: 1px solid #d5deeb;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
-  color: #172235;
+  background: #fcfdf9;
+  color: var(--ink);
 }
 
 textarea {
@@ -75,7 +89,7 @@ textarea {
 label {
   display: grid;
   gap: 7px;
-  color: #52627c;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 600;
 }
@@ -91,9 +105,9 @@ label {
 }
 
 .eyebrow {
-  color: #64748b;
+  color: var(--gold);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -101,23 +115,27 @@ label {
 h1 {
   margin: 6px 0;
   font-size: 34px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  color: var(--ink);
 }
 
 h2 {
   margin: 0 0 18px;
   font-size: 22px;
+  color: var(--ink);
 }
 
 .page-header p {
   margin: 0;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .live-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #3357bc;
+  color: var(--forest);
   font-weight: 650;
   text-decoration: none;
 }
@@ -140,18 +158,27 @@ h2 {
   display: grid;
   gap: 12px;
   padding: 20px;
-  border: 1px solid #e0e6ef;
+  border: 1px solid #ffffff;
   border-radius: 14px;
-  background: #fff;
+  background: #ffffffc9;
+  box-shadow: 0 8px 36px #354b3510, 0 1px 3px #354b3505;
 }
 
 .create-box button,
 .broadcast,
 .song-form button[type="submit"],
 .add-section button {
-  background: #3357bc;
-  border-color: #3357bc;
-  color: #fff;
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #f5f4e8;
+}
+
+.create-box button:hover:not(:disabled),
+.broadcast:hover:not(:disabled),
+.song-form button[type="submit"]:hover:not(:disabled),
+.add-section button:hover:not(:disabled) {
+  background: var(--forest-light);
+  border-color: var(--forest-light);
 }
 
 .setlist-list {
@@ -181,13 +208,13 @@ h2 {
 
 .setlist-list small {
   margin-top: 6px;
-  color: #64748b;
+  color: var(--muted);
   font-size: 11px;
 }
 
 .setlist-list button.selected {
-  background: #e8efff;
-  border-color: #9cb2ee;
+  background: #edf2e8;
+  border-color: var(--forest);
 }
 
 .setlist-list i,
@@ -195,8 +222,8 @@ h2 {
   flex-shrink: 0;
   padding: 5px 8px;
   border-radius: 8px;
-  background: #e2f4e9;
-  color: #216e43;
+  background: #f0f4eb;
+  color: var(--forest);
   font-size: 11px;
   font-style: normal;
   font-weight: 700;
@@ -210,9 +237,10 @@ h2 {
 .section-card {
   padding: 22px;
   margin-bottom: 20px;
-  border: 1px solid #e0e6ef;
+  border: 1px solid #ffffff;
   border-radius: 15px;
-  background: #fff;
+  background: #ffffffc9;
+  box-shadow: 0 8px 36px #354b3510, 0 1px 3px #354b3505;
 }
 
 .details {
@@ -236,23 +264,23 @@ h2 {
 
 .danger-ghost,
 .remove {
-  color: #b53e3e;
+  color: var(--danger);
 }
 
 .notice {
   margin: 14px 0 0;
-  color: #3357bc;
+  color: var(--forest);
   font-weight: 600;
 }
 
 .editing-hint {
-  color: #657793;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .edit-song-card {
-  border: 2px solid #a6bdf4;
+  border: 2px solid var(--forest-light);
 }
 
 .section-title {
@@ -260,7 +288,7 @@ h2 {
   align-items: center;
   gap: 10px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 1px solid var(--border);
 }
 
 .section-number {
@@ -270,12 +298,12 @@ h2 {
   height: 32px;
   place-items: center;
   border-radius: 50%;
-  background: #edf2ff;
-  color: #3357bc;
+  background: var(--sage);
+  color: var(--forest);
   font-weight: 700;
 }
 
-.section-title > input {
+.section-title>input {
   font-size: 17px;
   font-weight: 700;
 }
@@ -296,12 +324,12 @@ h2 {
   align-items: start;
   gap: 12px;
   padding: 18px 0;
-  border-bottom: 1px solid #edf1f7;
+  border-bottom: 1px solid var(--border);
 }
 
 .order {
   padding-top: 5px;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -317,12 +345,12 @@ h2 {
 .song-copy small {
   display: block;
   margin-top: 5px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .song-copy p {
   margin: 7px 0 0;
-  color: #52627c;
+  color: var(--muted);
   font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -331,8 +359,8 @@ h2 {
 .key {
   padding: 6px 10px;
   border-radius: 8px;
-  background: #edf2ff;
-  color: #3357bc;
+  background: var(--sage);
+  color: var(--forest);
   font-weight: 750;
 }
 
@@ -375,7 +403,7 @@ h2 {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  border: 2px dashed #cbd6e8;
+  border: 2px dashed var(--border);
   border-radius: 14px;
 }
 
@@ -385,20 +413,20 @@ h2 {
 
 .empty {
   padding: 12px;
-  color: #64748b;
+  color: var(--muted);
   font-size: 13px;
   text-align: center;
 }
 
 .empty-editor {
   padding: 70px 24px;
-  border: 1px dashed #cbd6e8;
+  border: 1px dashed var(--border);
   border-radius: 16px;
   text-align: center;
 }
 
 .empty-editor p {
-  color: #64748b;
+  color: var(--muted);
 }
 
 @media (max-width: 1000px) {
@@ -415,7 +443,7 @@ h2 {
     flex-wrap: wrap;
   }
 
-  .section-title > input {
+  .section-title>input {
     flex: 1;
     width: auto;
   }
@@ -448,7 +476,7 @@ h2 {
     padding: 16px;
   }
 
-  .head-actions > button {
+  .head-actions>button {
     flex: 1;
   }
 
