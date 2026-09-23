@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 import {
   RealtimeSyncService
 } from '../../services/realtime-sync.service';
+import { DialogService } from '../../services/dialog.service';
 
 import {
   MUSICAL_KEYS,
@@ -56,7 +57,8 @@ export class SonglistCreationComponent implements OnInit, OnDestroy {
 
   constructor(
     private songs: SongService,
-    public realtime: RealtimeSyncService
+    public realtime: RealtimeSyncService,
+    private dialog: DialogService
   ) {}
 
   ngOnInit(): void {
@@ -192,12 +194,19 @@ export class SonglistCreationComponent implements OnInit, OnDestroy {
     );
   }
 
-  deleteSetlist(): void {
+  async deleteSetlist(): Promise<void> {
     if (!this.active || !this.realtime.canSend) {
       return;
     }
 
-    if (!confirm(`Delete "${this.active.name}"?`)) {
+    const confirmed = await this.dialog.confirm({
+      title: `Delete "${this.active.name}"?`,
+      text: 'This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -246,12 +255,19 @@ export class SonglistCreationComponent implements OnInit, OnDestroy {
     this.notice = '';
   }
 
-  removeSection(section: SetlistSection): void {
+  async removeSection(section: SetlistSection): Promise<void> {
     if (!this.active || !this.realtime.canSend) {
       return;
     }
 
-    if (!confirm(`Remove "${section.name}" and its songs?`)) {
+    const confirmed = await this.dialog.confirm({
+      title: `Remove "${section.name}" and its songs?`,
+      text: 'This cannot be undone.',
+      confirmText: 'Remove',
+      danger: true
+    });
+
+    if (!confirmed) {
       return;
     }
 
