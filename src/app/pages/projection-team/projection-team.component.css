@@ -45,14 +45,14 @@ h3 {
 
 h1 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--ms-font-heading);
   font-size: clamp(30px, 4vw, 44px);
   font-weight: 500;
 }
 
 h2 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--ms-font-heading);
   font-size: 28px;
   font-weight: 500;
   overflow-wrap: anywhere;

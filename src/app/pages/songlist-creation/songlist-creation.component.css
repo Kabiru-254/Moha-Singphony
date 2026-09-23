@@ -115,7 +115,7 @@ label {
 h1 {
   margin: 6px 0;
   font-size: 34px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--ms-font-heading);
   font-weight: 400;
   color: var(--ink);
 }
